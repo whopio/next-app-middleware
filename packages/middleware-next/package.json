@@ -1,0 +1,21 @@
+{
+  "name": "middleware-next",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bundle": "tsup ./src/index.ts --format cjs --dts",
+    "build": "pnpm run bundle --minify",
+    "dev": "pnpm run bundle --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "next": "^13.0.6"
+  },
+  "peerDependencies": {
+    "next": "^13.0.6"
+  }
+}
