@@ -19,13 +19,7 @@ import type {
   ResolvedMiddlewareChainSegment,
 } from "../util/types";
 import type { MiddlewareRequestInternals } from "./internals";
-import {
-  isForwarder,
-  isMiddleware,
-  isResolvedForwarder,
-  isResolvedMiddleware,
-  resolveLayout,
-} from "./util";
+import { isForwarder, isMiddleware, resolveLayout } from "./util";
 
 const INTERNALS: unique symbol = Symbol("INTERNALS");
 
@@ -104,6 +98,7 @@ export class MiddlewareRequest<
   }
 
   public async __execute(chain: ChainLayout, verify: {}) {
+    console.time("__execute");
     if (verify !== this[INTERNALS].hacky)
       throw new Error(
         "MiddlewareRequest.prototype.__execute should not be called manually"
@@ -114,19 +109,15 @@ export class MiddlewareRequest<
       const res = await this.__executeSegment(handler, verify);
       if (typeof res === "boolean") {
         if (res) {
-          if (rewrite) currentSegment = rewrite;
-          else break;
+          // rewrite happened
+          if (!rewrite) throw new Error("Unexpected Rewrite");
+          if (typeof rewrite === "number") break;
+          else currentSegment = rewrite;
         } else {
-          if (typeof then === "number") {
-            // here 0 indicates an error in routing and 1 means
-            // that the middleware should resolve and finish processing
-            if (then === 0) {
-              throw new Error(
-                "Routing Error: Expected rewrite to return a param."
-              );
-            } else break;
-          } else if (then) currentSegment = then;
-          else break;
+          // no rewrite happened
+          if (!then) throw new Error("Expected Rewrite");
+          if (typeof then === "number") break;
+          else currentSegment = then;
         }
       } else return res;
     }
@@ -150,6 +141,7 @@ export class MiddlewareRequest<
       `/${cleanFinalUrl && `${cleanFinalUrl}/`}?${this.search}`,
       this.initialURL.origin
     );
+    console.timeEnd("__execute");
     return this[INTERNALS].res.__rewrite(finalURL);
   }
 
@@ -161,7 +153,7 @@ export class MiddlewareRequest<
       throw new Error(
         "MiddlewareRequest.prototype.__executeSegment should not be called manually"
       );
-    const { location } = handlerOrForwarder;
+    const [, , [location]] = handlerOrForwarder;
     this[INTERNALS].currentMatch = location;
     const matchedSegments = location.split("/").filter(Boolean).length;
     /**
@@ -188,7 +180,7 @@ export class MiddlewareRequest<
           ? `${this[INTERNALS].currentPath.join("/")}/`
           : ""
       }`,
-      this[INTERNALS].req.nextUrl.origin
+      this[INTERNALS].req.nextUrl
     );
     const match = new URLPattern(
       location,
@@ -196,8 +188,8 @@ export class MiddlewareRequest<
     ).exec(testURL);
     if (!match) throw new Error("Unexpected Error while getting Path params");
     this[INTERNALS].params = match.pathname.groups;
-    if (isResolvedMiddleware(handlerOrForwarder)) {
-      const { middleware: handler } = handlerOrForwarder;
+    if (isMiddleware(handlerOrForwarder)) {
+      const [, handler] = handlerOrForwarder;
       const middlewareResult = await (await handler)(this, this[INTERNALS].res);
       if (!middlewareResult) return false;
       if ("redirect" in middlewareResult) {
@@ -218,8 +210,8 @@ export class MiddlewareRequest<
       } else if ("json" in middlewareResult) {
         return this[INTERNALS].res.__json(middlewareResult.json);
       }
-    } else if (isResolvedForwarder(handlerOrForwarder)) {
-      const { forward: forwarder } = handlerOrForwarder;
+    } else if (isForwarder(handlerOrForwarder)) {
+      const [, forwarder] = handlerOrForwarder;
       const param = await (await forwarder)(this, this[INTERNALS].res);
       /**
        * if the forwarder returned a forward and

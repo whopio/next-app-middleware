@@ -1,12 +1,13 @@
 import type { NextMiddleware } from "next/server";
 import { MiddlewareRouter } from "./router";
-import type {
+import {
   Forwarder,
   ForwarderSegment,
   MiddlewareChainSegment,
   MiddlewareHandler,
   MiddlewareHandlerSegment,
   MiddlewareLayout,
+  MiddlewareTypes,
   Params,
 } from "./util/types";
 
@@ -38,25 +39,42 @@ type ImportedMiddleware<Param extends Record<string, string | undefined>> = {
   default: MiddlewareHandler<Param>;
 };
 
+/**
+ * @dev Used in the final middleware.ts output to import middlewares
+ * and to provide type safety using the middleware `location`.
+ */
 export const importMiddleware = <
   Path extends string,
   Param extends Params<Path> = Params<Path>
 >(
   location: Path,
   importer: () => Promise<ImportedMiddleware<Param>>
-): MiddlewareHandlerSegment<Param> => ({
-  location,
-  middleware: () =>
-    importer().then(
-      ({ default: middleware }) => middleware as MiddlewareHandler<Param>
-    ),
-});
+): MiddlewareHandlerSegment =>
+  [
+    MiddlewareTypes.MIDDLEWARE,
+    () =>
+      importer().then(
+        ({ default: middleware }) => middleware as MiddlewareHandler
+      ),
+    [location],
+  ] as const;
 
-export const importForwarder = <K extends string>(
-  location: string,
+/**
+ * @dev Used in the final middleware.ts output to import forwarders
+ * and to provide type safety using the middleware `location` and the
+ * required export.
+ */
+export const importForwarder = <
+  K extends string,
+  Path extends string,
+  Param extends Params<Path> = Params<Path>
+>(
+  location: Path,
   key: K,
-  importer: () => Promise<Record<K, Forwarder>>
-): ForwarderSegment => ({
-  location,
-  forward: () => importer().then(({ [key]: forward }) => forward),
-});
+  importer: () => Promise<Record<K, Forwarder<Param>>>
+): ForwarderSegment =>
+  [
+    MiddlewareTypes.FORWARDER,
+    () => importer().then(({ [key]: forward }) => forward as Forwarder),
+    [location],
+  ] as const;

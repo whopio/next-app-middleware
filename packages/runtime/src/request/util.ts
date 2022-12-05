@@ -1,8 +1,9 @@
-import type {
+import {
   ChainLayout,
   ForwarderSegment,
   MiddlewareChainSegment,
   MiddlewareHandlerSegment,
+  MiddlewareTypes,
   ResolvedChainLayout,
   ResolvedForwarderSegment,
   ResolvedMiddlewareChainSegment,
@@ -10,45 +11,36 @@ import type {
 } from "../util/types";
 import type { MiddlewareRequestInternals } from "./internals";
 
-export const isForwarder = (
+export function isForwarder(
   input: MiddlewareChainSegment
-): input is ForwarderSegment => {
-  return "forward" in input;
-};
+): input is ForwarderSegment;
+export function isForwarder(
+  input: ResolvedMiddlewareChainSegment
+): input is ResolvedForwarderSegment;
+export function isForwarder(
+  input: MiddlewareChainSegment | ResolvedMiddlewareChainSegment
+): boolean {
+  return input[0] === MiddlewareTypes.FORWARDER;
+}
 
-export const isMiddleware = (
+export function isMiddleware(
+  input: ResolvedMiddlewareChainSegment
+): input is ResolvedMiddlewareHandlerSegment;
+export function isMiddleware(
   input: MiddlewareChainSegment
-): input is MiddlewareHandlerSegment => {
-  return "middleware" in input;
-};
+): input is MiddlewareHandlerSegment;
+export function isMiddleware(
+  input: MiddlewareChainSegment | ResolvedMiddlewareChainSegment
+): boolean {
+  return input[0] === MiddlewareTypes.MIDDLEWARE;
+}
 
-export const isResolvedForwarder = (
-  input: ResolvedMiddlewareChainSegment
-): input is ResolvedForwarderSegment => {
-  return "forward" in input;
-};
-
-export const isResolvedMiddleware = (
-  input: ResolvedMiddlewareChainSegment
-): input is ResolvedMiddlewareHandlerSegment => {
-  return "middleware" in input;
-};
-
-const resolveSegment = (
-  segment: MiddlewareChainSegment
-): ResolvedMiddlewareChainSegment => {
-  if (isForwarder(segment)) {
-    return {
-      ...segment,
-      forward: segment.forward(),
-    };
-  } else if (isMiddleware(segment)) {
-    return {
-      ...segment,
-      middleware: segment.middleware(),
-    };
-  }
-  throw new Error("");
+const resolveSegment = ([
+  type,
+  handler,
+  ...rest
+]: MiddlewareChainSegment): ResolvedMiddlewareChainSegment => {
+  return [type, handler(), ...rest] as ResolvedMiddlewareChainSegment;
 };
 
 export const resolveLayout = ([
@@ -59,6 +51,6 @@ export const resolveLayout = ([
   return [
     resolveSegment(handler),
     typeof then === "number" ? then : then && resolveLayout(then),
-    rewrite && resolveLayout(rewrite),
+    typeof rewrite === "number" ? rewrite : rewrite && resolveLayout(rewrite),
   ];
 };

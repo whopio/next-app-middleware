@@ -1,8 +1,10 @@
 import { parse } from "@swc/core";
+import { createHash } from "crypto";
 import fse from "fs-extra";
 import _glob from "glob";
 import { join } from "path";
 import { promisify } from "util";
+import { SegmentLayout } from "./types";
 
 const glob = promisify(_glob);
 const { readFile, readdir, stat } = fse;
@@ -13,16 +15,6 @@ const isDynamicSegment = (segment: string) => dynamicSegmentRegex.test(segment);
 const routeGroupSegmentRegex = /\((.*)\)/;
 const isRouteGroupSegment = (segment: string) =>
   routeGroupSegmentRegex.test(segment);
-
-type SegmentLayout = {
-  rewrite: string[];
-  page: boolean;
-  middleware: boolean;
-  location: string;
-  internalPath: string;
-  externalPath: string;
-  children: Record<string, SegmentLayout>;
-};
 
 const hasMiddleware = (filesAndFolders: string[]) =>
   filesAndFolders.includes("middleware.ts") ||
@@ -48,7 +40,8 @@ const collectChildren = async (
   dir: string,
   externalPath: string,
   filesAndFolders: string[],
-  rewrite: string[]
+  rewrite: string[],
+  getParent: () => SegmentLayout
 ) => {
   const children: Record<string, SegmentLayout> = {};
   await Promise.all(
@@ -58,7 +51,8 @@ const collectChildren = async (
         if (isRouteGroupSegment(fileOrFolder)) {
           children[fileOrFolder] = await collectLayout(
             join(dir, fileOrFolder),
-            externalPath
+            externalPath,
+            getParent
           );
         } else {
           const match = dynamicSegmentRegex.exec(fileOrFolder);
@@ -66,18 +60,21 @@ const collectChildren = async (
             if (rewrite.includes(match[1])) {
               children[fileOrFolder] = await collectLayout(
                 join(dir, fileOrFolder),
-                externalPath
+                externalPath,
+                getParent
               );
             } else {
               children[fileOrFolder] = await collectLayout(
                 join(dir, fileOrFolder),
-                join(externalPath, `:${match[1]}`)
+                join(externalPath, `:${match[1]}`),
+                getParent
               );
             }
           } else {
             children[fileOrFolder] = await collectLayout(
               join(dir, fileOrFolder),
-              join(externalPath, fileOrFolder)
+              join(externalPath, fileOrFolder),
+              getParent
             );
           }
         }
@@ -87,9 +84,22 @@ const collectChildren = async (
   return children;
 };
 
-const collectLayout = async (dir: string = "app", externalPath = "/") => {
+const collectLayout = async (
+  dir: string = "app",
+  externalPath = "/",
+  getParent?: () => SegmentLayout
+) => {
   const filesAndFolders = await readdir(dir);
+  const [currentSegment] = dir.split("/").reverse();
+  const dynamic = dynamicSegmentRegex.exec(currentSegment)?.[1];
   const rewrite = await collectRewrites(dir, filesAndFolders);
+  const hash =
+    externalPath === "/"
+      ? "/"
+      : externalPath
+          .split("/")
+          .map((segment) => (segment.startsWith(":") ? ":" : segment))
+          .join("/") + "/";
   const layout: SegmentLayout = {
     location: dir,
     internalPath:
@@ -109,15 +119,35 @@ const collectLayout = async (dir: string = "app", externalPath = "/") => {
             .join("/") +
           "/",
     externalPath: externalPath === "/" ? "/" : externalPath + "/",
+    hash,
+    dynamic,
     rewrite,
     page: hasPage(filesAndFolders),
     middleware: hasMiddleware(filesAndFolders),
+    hashes: {
+      middleware: createHash("sha1")
+        .update(join(dir, "middleware"))
+        .digest("hex")
+        .slice(0, 12),
+      rewrite: rewrite.reduce(
+        (acc, val) => ({
+          ...acc,
+          [val]: createHash("sha1")
+            .update(join(dir, "rewrite", val))
+            .digest("hex")
+            .slice(0, 12),
+        }),
+        {}
+      ),
+    },
     children: await collectChildren(
       dir,
       externalPath,
       filesAndFolders,
-      rewrite
+      rewrite,
+      () => layout
     ),
+    parent: getParent,
   };
   return layout;
 };
@@ -151,8 +181,53 @@ const collectModuleExports = async (path: string) => {
   return exports;
 };
 
-const validateLayout = () => {};
+const getPages = (layout: SegmentLayout): SegmentLayout[] => {
+  const result: SegmentLayout[] = [];
+  if (layout.page) result.push(layout);
+  for (const child of Object.values(layout.children)) {
+    result.push(...getPages(child));
+  }
+  return result;
+};
+
+const getSimilarPages = (pages: SegmentLayout[]) => {
+  const result: Record<string, SegmentLayout[]> = {};
+  for (const page of pages) {
+    if (!result[page.hash]) result[page.hash] = [page];
+    else result[page.hash].push(page);
+  }
+  return result;
+};
+
+const getRoute = (page: SegmentLayout): SegmentLayout[] => {
+  const result: SegmentLayout[] = [page];
+  let getParent = page.parent;
+  while (getParent) {
+    const parent = getParent();
+    result.push(parent);
+    getParent = parent.parent;
+  }
+  return result.reverse();
+};
+
+const validateLayout = (externalLayout: Record<string, SegmentLayout[]>) => {
+  for (const pages of Object.values(externalLayout)) {
+    const externalPath = pages[0].externalPath;
+    for (const page of pages.slice(1)) {
+      if (page.externalPath !== externalPath)
+        throw new Error(
+          `Invalid Configuration: ${externalPath} and ${page.externalPath} result in different pages but the same Matcher.`
+        );
+    }
+  }
+};
 
 const generate = async (layout: SegmentLayout) => {};
 
-collectLayout().then((layout) => console.log(JSON.stringify(layout, null, 2)));
+collectLayout().then((layout) => {
+  console.log(JSON.stringify(layout, null, 2));
+  const pages = getPages(layout);
+  const externalLayout = getSimilarPages(pages);
+  console.log(externalLayout);
+  validateLayout(externalLayout);
+});
