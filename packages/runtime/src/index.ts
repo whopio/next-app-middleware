@@ -11,7 +11,7 @@ import {
   Params,
 } from "./util/types";
 
-const makeMiddleware = (layout: MiddlewareLayout): NextMiddleware => {
+export const makeMiddleware = (layout: MiddlewareLayout): NextMiddleware => {
   const chain = new MiddlewareRouter(layout);
   return chain.apply.bind(chain);
 };
