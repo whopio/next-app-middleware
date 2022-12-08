@@ -68,7 +68,6 @@ export class MiddlewareRequest<
       currentMatch: "",
       path: __req.nextUrl.pathname.split("/").filter(Boolean),
       currentPath: [],
-      params: {},
     };
     defineReadOnly(internals, "req", __req);
     defineReadOnly(internals, "ev", __ev);
@@ -86,12 +85,27 @@ export class MiddlewareRequest<
     defineReadOnly(this, "cookies", this[INTERNALS].req.cookies);
     defineReadOnly(this, "headers", this[INTERNALS].req.headers);
     defineReadOnly(this, "search", new URLSearchParams(__req.nextUrl.search));
+    defineReadOnlyGetter(this, "params", () => {
+      // TODO: Look into optimising this accessing the path params
+      // currently takes 1.5-2ms...
+      const testURL = new URL(
+        `/${
+          this[INTERNALS].currentPath.length
+            ? `${this[INTERNALS].currentPath.join("/")}/`
+            : ""
+        }`,
+        this[INTERNALS].req.nextUrl
+      );
+      const match = new URLPattern(
+        this[INTERNALS].currentMatch,
+        this[INTERNALS].req.nextUrl.origin
+      ).exec(testURL);
+      if (!match) throw new Error("Unexpected Error while getting Path params");
+      return match.pathname.groups as Params;
+    });
     defineReadOnlyGetter(this, "initialURL", () =>
       this[INTERNALS].req.nextUrl.clone()
     );
-    defineReadOnlyGetter(this, "params", () => {
-      return this[INTERNALS].params as Params;
-    });
     defineReadOnlyGetter(this, "currentPath", () =>
       this[INTERNALS].currentPath.join("/")
     );
@@ -170,24 +184,7 @@ export class MiddlewareRequest<
      */
     while (matchedSegments > this[INTERNALS].currentPath.length)
       this[INTERNALS].currentPath.push(this[INTERNALS].path.shift()!);
-    /**
-     * match the current path against the current match and update
-     * the params
-     */
-    const testURL = new URL(
-      `/${
-        this[INTERNALS].currentPath.length
-          ? `${this[INTERNALS].currentPath.join("/")}/`
-          : ""
-      }`,
-      this[INTERNALS].req.nextUrl
-    );
-    const match = new URLPattern(
-      location,
-      this[INTERNALS].req.nextUrl.origin
-    ).exec(testURL);
-    if (!match) throw new Error("Unexpected Error while getting Path params");
-    this[INTERNALS].params = match.pathname.groups;
+
     if (isMiddleware(handlerOrForwarder)) {
       const [, handler] = handlerOrForwarder;
       const middlewareResult = await (await handler)(this, this[INTERNALS].res);

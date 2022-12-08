@@ -316,7 +316,6 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
   | FlattenedRoute
   | 1
   | undefined => {
-  console.log(current);
   if (current.middleware) {
     if (rewrite) {
       const flattenedRoute: FlattenedRoute = [
@@ -368,9 +367,6 @@ const generate = async () => {
   const routes = Object.entries(externalLayout).map(([key, layouts]) => {
     const resolvedLayouts = resolveLayouts(layouts);
     const mergedRoutes = mergeLayouts(resolvedLayouts);
-    /* traverseRoute(mergedRoutes, (segment) => {
-      console.log(key, layouts.length, segment);
-    }); */
     return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
   });
   const imported: Record<string, RenderSegmentImportArgs> = {};
@@ -426,11 +422,30 @@ class CancelToken {
   }
 }
 
-export const build = async () => {
+export const build = async (token?: CancelToken) => {
   const code = await generate();
+  if (token && token.cancelled) return;
   await outputFile(join(process.cwd(), "middleware.ts"), code);
+  console.log("Successfuly built middleware.");
 };
 
 export const dev = async () => {
-  // use chokidar to watch for additioms/removals and rebuild
+  await build();
+  console.log("watching for middleware changes...");
+  const middlewareWatcher = watch("app/**/middleware.{ts,js}");
+  const rewriteWatcher = watch("app/**/rewrite.{ts,js}");
+  let cancelToken: CancelToken;
+  const runBuild = (type: string) => (file: string) => {
+    console.log(`${type} ${file}`);
+    if (cancelToken) cancelToken.cancel();
+    cancelToken = new CancelToken();
+    build(cancelToken);
+  };
+  middlewareWatcher
+    .on("add", runBuild("added"))
+    .on("unlink", runBuild("deleted"));
+  rewriteWatcher
+    .on("add", runBuild("added"))
+    .on("unlink", runBuild("deleted"))
+    .on("change", runBuild("changed"));
 };

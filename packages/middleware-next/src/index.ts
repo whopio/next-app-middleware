@@ -1,5 +1,6 @@
 import { NextConfig } from "next";
-import { build } from "@middleware-next/codegen";
+import { build, dev } from "@middleware-next/codegen";
+import { PHASE_DEVELOPMENT_SERVER } from "next/dist/shared/lib/constants";
 
 export const withMiddleware =
   (
@@ -8,8 +9,11 @@ export const withMiddleware =
       | ((phase: string, args: { defaultConfig: NextConfig }) => NextConfig)
   ) =>
   async (phase: string, args: { defaultConfig: NextConfig }) => {
-    console.log("running middleware plugin");
-    await build();
+    if (phase === PHASE_DEVELOPMENT_SERVER) {
+      dev();
+    } else {
+      await build();
+    }
     return typeof next === "function" ? next(phase, args) : next;
   };
 
