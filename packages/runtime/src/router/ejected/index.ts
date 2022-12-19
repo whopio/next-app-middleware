@@ -95,14 +95,17 @@ export const renderDynamicImports = (
   imports: Array<[string, "middleware" | "rewrite"]>
 ) =>
   `
-${imports
-  .sort((a, b) => importTypes.indexOf(b[1]) - importTypes.indexOf(a[1]))
-  .map(([location, type]) =>
-    `
+${Array.from(
+  new Set(
+    imports
+      .sort((a, b) => importTypes.indexOf(b[1]) - importTypes.indexOf(a[1]))
+      .map(([location, type]) =>
+        `
 const ${type}_${getSegmentHash(location)} = import("./${location}/${type}");
 `.trim()
+      )
   )
-  .join("\n")}
+).join("\n")}
 `.trim();
 
 export const renderRouter = (router: EjectedRouter) =>

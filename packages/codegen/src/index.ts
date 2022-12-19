@@ -361,6 +361,8 @@ const traverseRoute = <T>(
 };
 
 const generate = async () => {
+  const hooksPromise = readHooksConfig();
+  const publicPromise = collectPublicFiles();
   const layout = await collectLayout();
   let segmentAmount = 0;
   const pages = getPages(layout);
@@ -368,8 +370,6 @@ const generate = async () => {
     const segments = page.internalPath.split("/").length - 2;
     if (segments > segmentAmount) segmentAmount = segments;
   });
-  const hooksPromise = readHooksConfig();
-  const publicPromise = collectPublicFiles();
   const externalLayout = getSimilarPages(pages);
   validateLayout(externalLayout);
   const routes = Object.entries(externalLayout).map(([key, layouts]) => {
