@@ -1,5 +1,5 @@
 {
-  "name": "@baked-dev/middleware-next",
+  "name": "@baked-dev/next-app-middleware",
   "version": "0.0.0",
   "private": true,
   "workspaces": [

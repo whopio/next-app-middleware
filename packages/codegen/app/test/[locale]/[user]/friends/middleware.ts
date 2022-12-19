@@ -1,4 +1,4 @@
-import { MiddlewareHandler } from "@middleware-next/runtime";
+import { MiddlewareHandler } from "@next-app-middleware/runtime";
 
 const middleware: MiddlewareHandler = (req, res) => {
   console.log("middleware");

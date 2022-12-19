@@ -1,13 +1,30 @@
+import {
+  Branch,
+  BranchTypes,
+  renderRouter,
+  RouterHooksConfig,
+} from "@next-app-middleware/runtime/dist/router/ejected";
 import { parse } from "@swc/core";
+import { watch } from "chokidar";
 import { createHash } from "crypto";
 import fse from "fs-extra";
+import _glob from "glob";
 import { join } from "path";
-import { renderMiddleware, RenderSegmentImportArgs } from "./render";
-import { ExternalLayout, LayoutType, SegmentLayout } from "./types";
 import { format } from "prettier";
-import { watch } from "chokidar";
+import { promisify } from "util";
+import { ExternalLayout, LayoutType, SegmentLayout } from "./types";
 
 const { readFile, readdir, stat, outputFile } = fse;
+const glob = promisify(_glob);
+
+const defaultHooksConfig: RouterHooksConfig = {
+  notFound: false,
+  redirect: false,
+  rewrite: false,
+  json: false,
+  params: false,
+  response: false,
+};
 
 const dynamicSegmentRegex = /\[(.*)\]/;
 const isDynamicSegment = (segment: string) => dynamicSegmentRegex.test(segment);
@@ -251,15 +268,16 @@ const validateLayout = (externalLayout: ExternalLayout) => {
 
 type MergedRoute = [
   current: SegmentLayout,
-  next?: MergedRoute | 1,
+  next?: MergedRoute | SegmentLayout,
   rewrite?: MergedRoute
 ];
 
 type FlattenedRoute = [
   current: string,
   currentSegment: SegmentLayout,
-  next?: FlattenedRoute | 1,
-  rewrite?: FlattenedRoute | 1
+  type: 0 | string,
+  next?: FlattenedRoute | SegmentLayout,
+  rewrite?: FlattenedRoute | SegmentLayout
 ];
 
 const resolveLayouts = (pages: SegmentLayout[]) => {
@@ -301,7 +319,11 @@ const mergeLayouts = (pages: SegmentLayout[][]): MergedRoute => {
   if (hasLast && nexts.length > 1) {
     throw new Error("1");
   }
-  const next = hasLast ? 1 : nexts.length ? mergeLayouts(nexts) : undefined;
+  const next = hasLast
+    ? currentPage
+    : nexts.length
+    ? mergeLayouts(nexts)
+    : undefined;
   const rewrite = rewrites.length ? mergeLayouts(rewrites) : undefined;
   return [currentPage, next, rewrite];
 };
@@ -314,13 +336,14 @@ const getNextDynamicParam = ([current, , rewrite]: MergedRoute): string => {
 
 const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
   | FlattenedRoute
-  | 1
+  | SegmentLayout
   | undefined => {
   if (current.middleware) {
     if (rewrite) {
       const flattenedRoute: FlattenedRoute = [
         current.hashes.middleware as string,
         current,
+        0,
         flattenMergedRoute([{ ...current, middleware: false }, next, rewrite]),
       ];
       return flattenedRoute;
@@ -328,7 +351,8 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
       const flattenedRoute: FlattenedRoute = [
         current.hashes.middleware as string,
         current,
-        next === 1 ? 1 : next && flattenMergedRoute(next),
+        0,
+        next instanceof Array ? flattenMergedRoute(next) : next && next,
         rewrite && flattenMergedRoute(rewrite),
       ];
       return flattenedRoute;
@@ -338,79 +362,256 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
     const flattenedRoute: FlattenedRoute = [
       current.hashes.rewrite[param],
       current,
-      next === 1 ? 1 : next && flattenMergedRoute(next),
+      param,
+      next instanceof Array ? flattenMergedRoute(next) : next,
       rewrite && flattenMergedRoute(rewrite),
     ];
     return flattenedRoute;
   } else {
-    if (next === 1) return 1;
-    return next && flattenMergedRoute(next);
+    if (next instanceof Array) return flattenMergedRoute(next);
+    return next;
   }
 };
 
 const traverseRoute = <T>(
-  [hash, current, next, rewrite]: FlattenedRoute,
-  onSegment: (hash: string, segment: SegmentLayout) => T
+  [hash, current, type, next, rewrite]: FlattenedRoute,
+  onSegment: (hash: string, segment: SegmentLayout, type: 0 | string) => T
 ): LayoutType<T> => {
   return [
-    onSegment(hash, current),
-    next === 1 ? 1 : next && traverseRoute(next, onSegment),
-    rewrite === 1 ? 1 : rewrite && traverseRoute(rewrite, onSegment),
+    onSegment(hash, current, type),
+    next instanceof Array ? traverseRoute(next, onSegment) : 1,
+    rewrite instanceof Array ? traverseRoute(rewrite, onSegment) : 1,
   ];
 };
 
 const generate = async () => {
   const layout = await collectLayout();
+  let segmentAmount = 0;
   const pages = getPages(layout);
+  pages.forEach((page) => {
+    const segments = page.internalPath.split("/").length - 2;
+    if (segments > segmentAmount) segmentAmount = segments;
+  });
+  const hooksPromise = readHooksConfig();
+  const publicPromise = collectPublicFiles();
   const externalLayout = getSimilarPages(pages);
   validateLayout(externalLayout);
+  const allPaths = new Set<string>();
+  const externalPaths = new Set<string>();
   const routes = Object.entries(externalLayout).map(([key, layouts]) => {
+    layouts.forEach((layout) => allPaths.add(layout.internalPath));
+    layouts.forEach((layout) => externalPaths.add(layout.externalPath));
     const resolvedLayouts = resolveLayouts(layouts);
     const mergedRoutes = mergeLayouts(resolvedLayouts);
     return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
   });
-  const imported: Record<string, RenderSegmentImportArgs> = {};
-  let hasMiddleware = false,
-    hasRewrite = false;
-  const layoutRoutes: Array<[string, LayoutType<string>]> = [];
+  const imported: Record<string, [string, "rewrite" | "middleware"]> = {};
+  const layoutRoutes: Array<[string, LayoutType<string> | 0]> = [];
   routes.forEach(([routeHash, route]) => {
     const replaced = traverseRoute(route, (hash, segment) => {
       if (!imported[hash]) {
         if (hash === segment.hashes.middleware) {
-          imported[hash] = [
-            hash,
-            segment.location,
-            segment.internalPath,
-            "middleware",
-          ];
-          hasMiddleware = true;
+          imported[hash] = [segment.location, "middleware"];
         } else {
           const [rewrite] =
             Object.entries(segment.hashes.rewrite).find(
               ([, rewriteHash]) => rewriteHash === hash
             ) || [];
           if (!rewrite) throw new Error("3");
-          imported[hash] = [
-            hash,
-            segment.location,
-            segment.internalPath,
-            "rewrite",
-            rewrite,
-          ];
-          hasRewrite = true;
+          imported[hash] = [segment.location, "rewrite"];
         }
       }
       return `segment_${hash}`;
     });
     layoutRoutes.push([routeHash, replaced]);
   });
-  const middleware = renderMiddleware(
-    hasMiddleware,
-    hasRewrite,
-    imported,
-    layoutRoutes
+  const bySegmentAmount: typeof routes[] = [];
+  routes.forEach((route) => {
+    const segmentAmount = route[0].split("/").length - 2;
+    if (!bySegmentAmount[segmentAmount])
+      bySegmentAmount[segmentAmount] = [route];
+    else bySegmentAmount[segmentAmount].push(route);
+  });
+  const branches = bySegmentAmount.map((similarRoutes) =>
+    toMatcherMap(similarRoutes)
   );
-  return format(middleware, { parser: "babel-ts" });
+  const ejectedBranches = branches.map((map) => ejectMatcherMap(map));
+  return format(
+    renderRouter({
+      branches: ejectedBranches,
+      publicFiles: await publicPromise,
+      segmentAmount,
+      hooks: await hooksPromise,
+      imports: Object.values(imported),
+    }),
+    { parser: "babel-ts" }
+  );
+};
+
+const collectMatcherData = (pages: SegmentLayout[]) => {
+  const matcherData: Set<string>[] = [];
+  for (const page of pages) {
+    const [, ...segments] = page.internalPath.split("/");
+    for (let i = 0; i < segments.length - 1; i++) {
+      if (!matcherData[i]) matcherData[i] = new Set();
+      const segment = segments[i];
+      if (segment.startsWith(":")) matcherData[i].add(":");
+      else matcherData[i].add(segment);
+    }
+  }
+  return matcherData;
+};
+
+const collectPublicFiles = async () => {
+  return (await glob("public/**/*")).map((path) => path.slice(6));
+};
+
+const readHooksConfig = async () => {
+  const matches = await glob("./middleware.hooks.{ts,js}");
+  if (matches.length === 0)
+    return {
+      ...defaultHooksConfig,
+    };
+  if (matches.length > 1)
+    console.warn("Multiple middleware configs found, using:", matches[0]);
+  const exports = await collectModuleExports(matches[0]);
+  const config = {
+    ...defaultHooksConfig,
+  };
+  exports.forEach((key) => {
+    if (Object.hasOwn(config, key)) config[key as keyof typeof config] = true;
+  });
+  return config;
+};
+
+type MatcherMap = Map<string, FlattenedRoute | MatcherMap>;
+
+const toMatcherMap = (similarRoutes: (readonly [string, FlattenedRoute])[]) => {
+  const map: MatcherMap = new Map();
+  for (const [externalPath, route] of similarRoutes) {
+    let currentMap = map;
+    const segments = externalPath.slice(1, -1).split("/");
+    for (const segment of segments.slice(0, -1)) {
+      if (!currentMap.has(segment)) currentMap.set(segment, new Map());
+      currentMap = currentMap.get(segment) as MatcherMap;
+    }
+    currentMap.set(segments[segments.length - 1], route);
+  }
+  return map;
+};
+
+const ejectMatcherMap = (
+  map: FlattenedRoute | MatcherMap,
+  depth = 0
+): Branch => {
+  if (map instanceof Map) {
+    const defaultCase = map.get(":");
+    return {
+      type: BranchTypes.SWITCH,
+      index: depth,
+      cases: Array.from(map.entries())
+        .filter(([segment]) => segment !== ":")
+        .map(([segment, entry]) => {
+          return {
+            match: segment,
+            then: ejectMatcherMap(entry, depth + 1),
+          };
+        }),
+      defaultCase: defaultCase
+        ? ejectMatcherMap(defaultCase, depth + 1)
+        : {
+            type: BranchTypes.NOT_FOUND,
+          },
+    };
+  } else return ejectRoute(map);
+};
+
+const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
+  const segments = page.externalPath.split("/");
+  const [segment] = segments.filter(
+    (segment) => segment.startsWith(":") && !appliedParams.has(segment.slice(1))
+  );
+
+  if (segment) {
+    const name = segment.slice(1);
+    const index = segments.indexOf(segment) - 1;
+    appliedParams.add(name);
+    return {
+      type: BranchTypes.DYNAMIC,
+      name,
+      index,
+      then: ejectPage(page, appliedParams),
+    };
+  }
+  return {
+    type: BranchTypes.NEXT,
+    rewrite: page.internalPath.includes("/:") ? page.internalPath : undefined,
+  };
+};
+
+const ejectRoute = (
+  [currentHash, currentSegment, type, next, rewrite]: FlattenedRoute,
+  appliedParams = new Set<string>()
+): Branch => {
+  const segments = currentSegment.externalPath.split("/");
+  const [segment] = segments.filter(
+    (segment) => segment.startsWith(":") && !appliedParams.has(segment.slice(1))
+  );
+
+  if (segment) {
+    const name = segment.slice(1);
+    const index = segments.indexOf(segment) - 1;
+    appliedParams.add(name);
+    return {
+      type: BranchTypes.DYNAMIC,
+      name,
+      index,
+      then: ejectRoute(
+        [currentHash, currentSegment, type, next, rewrite],
+        appliedParams
+      ),
+    };
+  }
+  if (typeof type === "number") {
+    return {
+      type: BranchTypes.MIDDLEWARE,
+      id: currentHash,
+      internalPath: currentSegment.internalPath,
+      location: currentSegment.location,
+      then:
+        next instanceof Array
+          ? ejectRoute(next, appliedParams)
+          : next
+          ? ejectPage(next, appliedParams)
+          : {
+              type: BranchTypes.NOT_FOUND,
+            },
+    };
+  } else {
+    return {
+      type: BranchTypes.REWRITE,
+      name: type,
+      id: currentHash,
+      internalPath: currentSegment.internalPath,
+      location: currentSegment.location,
+      then:
+        next instanceof Array
+          ? ejectRoute(next, appliedParams)
+          : next
+          ? ejectPage(next, appliedParams)
+          : {
+              type: BranchTypes.NOT_FOUND,
+            },
+      rewrite:
+        rewrite instanceof Array
+          ? ejectRoute(rewrite, appliedParams)
+          : rewrite
+          ? ejectPage(rewrite, appliedParams)
+          : {
+              type: BranchTypes.NOT_FOUND,
+            },
+    };
+  }
 };
 
 class CancelToken {
@@ -426,25 +627,35 @@ export const build = async (token?: CancelToken) => {
   const code = await generate();
   if (token && token.cancelled) return;
   await outputFile(join(process.cwd(), "middleware.ts"), code);
-  console.log("Successfuly built middleware.");
+  console.info("Successfuly built middleware.");
 };
 
 export const dev = async () => {
-  await build();
-  console.log("watching for middleware changes...");
-  const middlewareWatcher = watch("app/**/middleware.{ts,js}");
-  const rewriteWatcher = watch("app/**/rewrite.{ts,js}");
+  const buildWithCatch = async (token?: CancelToken) => {
+    try {
+      await build(token);
+    } catch (e) {
+      console.error("Error while building middleware:", e);
+    }
+  };
+  await buildWithCatch();
+  console.info("waiting for middleware changes...");
   let cancelToken: CancelToken;
   const runBuild = (type: string) => (file: string) => {
-    console.log(`${type} ${file}`);
+    console.info(`${type} ${file}`);
     if (cancelToken) cancelToken.cancel();
     cancelToken = new CancelToken();
-    build(cancelToken);
+    buildWithCatch(cancelToken);
   };
-  middlewareWatcher
+
+  watch("app/**/middleware.{ts,js}", { ignoreInitial: true })
+    .add("app/**/page.{tsx,js,jsx}")
+    .add("public/**/*")
     .on("add", runBuild("added"))
     .on("unlink", runBuild("deleted"));
-  rewriteWatcher
+
+  watch("app/**/rewrite.{ts,js}", { ignoreInitial: true })
+    .add("./middleware.hooks.{ts,js}")
     .on("add", runBuild("added"))
     .on("unlink", runBuild("deleted"))
     .on("change", runBuild("changed"));

@@ -1,11 +1,11 @@
 {
-  "name": "@middleware-next/runtime",
+  "name": "@next-app-middleware/runtime",
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "bundle": "tsup ./src/index.ts --format cjs --dts",
+    "bundle": "tsup ./src/index.ts ./src/router/ejected/index.ts --format cjs --dts",
     "build": "pnpm run bundle --minify",
     "dev": "pnpm run bundle --watch"
   },

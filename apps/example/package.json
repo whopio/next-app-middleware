@@ -20,7 +20,6 @@
     "typescript": "4.9.3"
   },
   "devDependencies": {
-    "@middleware-next/runtime": "workspace:^1.0.0",
-    "middleware-next": "workspace:^1.0.0"
+    "next-app-middleware": "workspace:^1.0.0"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "middleware-next",
+  "name": "next-app-middleware",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -26,7 +26,7 @@
     "next": "13.0.6"
   },
   "dependencies": {
-    "@middleware-next/codegen": "workspace:^1.0.0",
-    "@middleware-next/runtime": "workspace:^1.0.0"
+    "@next-app-middleware/codegen": "workspace:^1.0.0",
+    "@next-app-middleware/runtime": "workspace:^1.0.0"
   }
 }

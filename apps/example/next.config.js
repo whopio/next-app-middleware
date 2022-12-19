@@ -1,6 +1,6 @@
 // @ts-check
 
-const { withMiddleware } = require("middleware-next");
+const { withMiddleware } = require("next-app-middleware");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

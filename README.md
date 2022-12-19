@@ -1,73 +1,65 @@
-# Turborepo starter
+# next-app-middleware
 
-This is an official pnpm starter turborepo.
+This next.js extension allows for middleware to live in the app directory. The extension will bundle all special middleware files in the app directory into a single middleware.ts file in your project root.
 
-## What's inside?
+## setup
 
-This turborepo uses [pnpm](https://pnpm.io) as a package manager. It includes the following packages/apps:
+### install
 
-### Apps and Packages
+### clean up current middleware and git working tree
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `ui`: a stub React component library shared by both `web` and `docs` applications
-- `eslint-config-custom`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `tsconfig`: `tsconfig.json`s used throughout the monorepo
+- delete your current middleware (or change the name if you want to keep it)
+- commit your repository
+- add `/middleware.ts` to your .gitignore (include the `/` to not exclude any `middleware.ts` files in your `app` directory)
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+### next.config.js
 
-### Utilities
+```js
+const { withMiddleware } = require("next-app-middleware");
 
-This turborepo has some additional tools already setup for you:
+const nextConfig = {};
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-pnpm run build
+module.exports = withMiddleware(nextConfig);
 ```
 
-### Develop
+## file conventions
 
-To develop all apps and packages, run the following command:
+### middleware.hooks.{ts,js}
 
-```
-cd my-turborepo
-pnpm run dev
-```
+#### notFound
 
-### Remote Caching
+#### redirect
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+#### rewrite
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup), then enter the following commands:
+#### json
 
-```
-cd my-turborepo
-pnpm dlx turbo login
-```
+#### params
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+#### response
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your turborepo:
+### app/\*\*/middleware.{ts,js}
+
+### app/\*\*/rewrite.{ts,js}
+
+Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten.
 
 ```
-pnpm dlx turbo link
+/app/
+  - [locale]
+    - page.tsx
+  - rewrite.ts
+
+// app/rewrite.ts
+export const locale = () => {
+  return "en";
+}
 ```
 
-## Useful Links
+In this example the rewirte.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
 
-Learn more about the power of Turborepo:
+## future plans
 
-- [Pipelines](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+### new file convention: external.{ts,js}
+
+Once this is placed in a directory all requests starting with that path will be sent to the return value of the default export if it is a function, if its a string that value will be used. This will make it so the final middleware will have to match anything that starts with that path. As a convenience feature middleware will also match the origin of requests to public files and rewrite them as well if the origin matches the external app.
