@@ -9,7 +9,6 @@ export enum BranchTypes {
 
 export type EjectedMiddleware = {
   type: BranchTypes.MIDDLEWARE;
-  id: string;
   internalPath: string;
   location: string;
   then: Branch;
@@ -17,7 +16,6 @@ export type EjectedMiddleware = {
 
 export type EjectedRewrite = {
   type: BranchTypes.REWRITE;
-  id: string;
   internalPath: string;
   location: string;
   name: string;

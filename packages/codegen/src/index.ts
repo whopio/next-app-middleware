@@ -157,26 +157,6 @@ const collectLayout = async (
       page: layoutPage,
       rewrite: layoutRewrite,
     },
-    hashes: {
-      middleware:
-        !!layoutMiddleware &&
-        createHash("sha1")
-          .update(join(dir, "middleware"))
-          .digest("hex")
-          .slice(0, 12),
-      rewrite: isRouteGroupSegment(currentSegment)
-        ? {}
-        : rewrite.reduce(
-            (acc, val) => ({
-              ...acc,
-              [val]: createHash("sha1")
-                .update(join(dir, "rewrite", val))
-                .digest("hex")
-                .slice(0, 12),
-            }),
-            {}
-          ),
-    },
     children: await collectChildren(
       dir,
       externalPath,
@@ -273,7 +253,6 @@ type MergedRoute = [
 ];
 
 type FlattenedRoute = [
-  current: string,
   currentSegment: SegmentLayout,
   type: 0 | string,
   next?: FlattenedRoute | SegmentLayout,
@@ -341,7 +320,6 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
   if (current.middleware) {
     if (rewrite) {
       const flattenedRoute: FlattenedRoute = [
-        current.hashes.middleware as string,
         current,
         0,
         flattenMergedRoute([{ ...current, middleware: false }, next, rewrite]),
@@ -349,7 +327,6 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
       return flattenedRoute;
     } else {
       const flattenedRoute: FlattenedRoute = [
-        current.hashes.middleware as string,
         current,
         0,
         next instanceof Array ? flattenMergedRoute(next) : next && next,
@@ -360,7 +337,6 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
   } else if (rewrite) {
     const param = getNextDynamicParam(rewrite);
     const flattenedRoute: FlattenedRoute = [
-      current.hashes.rewrite[param],
       current,
       param,
       next instanceof Array ? flattenMergedRoute(next) : next,
@@ -374,11 +350,11 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
 };
 
 const traverseRoute = <T>(
-  [hash, current, type, next, rewrite]: FlattenedRoute,
-  onSegment: (hash: string, segment: SegmentLayout, type: 0 | string) => T
+  [current, type, next, rewrite]: FlattenedRoute,
+  onSegment: (segment: SegmentLayout, type: 0 | string) => T
 ): LayoutType<T> => {
   return [
-    onSegment(hash, current, type),
+    onSegment(current, type),
     next instanceof Array ? traverseRoute(next, onSegment) : 1,
     rewrite instanceof Array ? traverseRoute(rewrite, onSegment) : 1,
   ];
@@ -396,34 +372,20 @@ const generate = async () => {
   const publicPromise = collectPublicFiles();
   const externalLayout = getSimilarPages(pages);
   validateLayout(externalLayout);
-  const allPaths = new Set<string>();
-  const externalPaths = new Set<string>();
   const routes = Object.entries(externalLayout).map(([key, layouts]) => {
-    layouts.forEach((layout) => allPaths.add(layout.internalPath));
-    layouts.forEach((layout) => externalPaths.add(layout.externalPath));
     const resolvedLayouts = resolveLayouts(layouts);
     const mergedRoutes = mergeLayouts(resolvedLayouts);
     return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
   });
-  const imported: Record<string, [string, "rewrite" | "middleware"]> = {};
-  const layoutRoutes: Array<[string, LayoutType<string> | 0]> = [];
-  routes.forEach(([routeHash, route]) => {
-    const replaced = traverseRoute(route, (hash, segment) => {
-      if (!imported[hash]) {
-        if (hash === segment.hashes.middleware) {
-          imported[hash] = [segment.location, "middleware"];
-        } else {
-          const [rewrite] =
-            Object.entries(segment.hashes.rewrite).find(
-              ([, rewriteHash]) => rewriteHash === hash
-            ) || [];
-          if (!rewrite) throw new Error("3");
-          imported[hash] = [segment.location, "rewrite"];
-        }
+  const imported: Array<[string, "rewrite" | "middleware"]> = [];
+  routes.forEach(([, route]) => {
+    traverseRoute(route, (segment, type) => {
+      if (type === 0) {
+        imported.push([segment.location, "middleware"]);
+      } else {
+        imported.push([segment.location, "rewrite"]);
       }
-      return `segment_${hash}`;
     });
-    layoutRoutes.push([routeHash, replaced]);
   });
   const bySegmentAmount: typeof routes[] = [];
   routes.forEach((route) => {
@@ -442,7 +404,7 @@ const generate = async () => {
       publicFiles: await publicPromise,
       segmentAmount,
       hooks: await hooksPromise,
-      imports: Object.values(imported),
+      imports: imported,
     }),
     { parser: "babel-ts" }
   );
@@ -550,7 +512,7 @@ const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
 };
 
 const ejectRoute = (
-  [currentHash, currentSegment, type, next, rewrite]: FlattenedRoute,
+  [currentSegment, type, next, rewrite]: FlattenedRoute,
   appliedParams = new Set<string>()
 ): Branch => {
   const segments = currentSegment.externalPath.split("/");
@@ -566,16 +528,12 @@ const ejectRoute = (
       type: BranchTypes.DYNAMIC,
       name,
       index,
-      then: ejectRoute(
-        [currentHash, currentSegment, type, next, rewrite],
-        appliedParams
-      ),
+      then: ejectRoute([currentSegment, type, next, rewrite], appliedParams),
     };
   }
   if (typeof type === "number") {
     return {
       type: BranchTypes.MIDDLEWARE,
-      id: currentHash,
       internalPath: currentSegment.internalPath,
       location: currentSegment.location,
       then:
@@ -591,7 +549,6 @@ const ejectRoute = (
     return {
       type: BranchTypes.REWRITE,
       name: type,
-      id: currentHash,
       internalPath: currentSegment.internalPath,
       location: currentSegment.location,
       then:

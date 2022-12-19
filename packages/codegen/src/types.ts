@@ -26,7 +26,6 @@ export type SegmentLayout = {
   externalPath: string;
   hash: string;
   dynamic?: string;
-  hashes: SegmentHashes;
   children: Record<string, SegmentLayout>;
   files: SegmentFiles;
   parent?: () => SegmentLayout;

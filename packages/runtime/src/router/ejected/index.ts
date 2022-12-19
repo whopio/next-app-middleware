@@ -284,7 +284,6 @@ export const config = {
 `.trim();
 
 const renderMiddleware = ({
-  id,
   then,
   internalPath,
   location,
@@ -317,7 +316,6 @@ ${renderSwitchStatement({
 `.trim();
 
 const renderRewrite = ({
-  id,
   then,
   rewrite,
   name,
