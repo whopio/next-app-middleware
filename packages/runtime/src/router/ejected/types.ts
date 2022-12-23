@@ -1,6 +1,6 @@
 export enum BranchTypes {
   MIDDLEWARE,
-  REWRITE,
+  FORWARD,
   SWITCH,
   NEXT,
   NOT_FOUND,
@@ -14,13 +14,13 @@ export type EjectedMiddleware = {
   then: Branch;
 };
 
-export type EjectedRewrite = {
-  type: BranchTypes.REWRITE;
+export type EjectedForward = {
+  type: BranchTypes.FORWARD;
   internalPath: string;
   location: string;
   name: string;
   then?: Branch;
-  rewrite?: Branch;
+  forward?: Branch;
 };
 
 export type PathSegmentSwitchCase = {
@@ -41,7 +41,7 @@ export type EjectedNotFoundResponse = {
 
 export type EjectedNextResponse = {
   type: BranchTypes.NEXT;
-  rewrite?: string;
+  internalPath?: string;
 };
 
 export type DynamicSegment = {
@@ -53,7 +53,7 @@ export type DynamicSegment = {
 
 export type Branch =
   | EjectedMiddleware
-  | EjectedRewrite
+  | EjectedForward
   | PathSegmentSwitch
   | EjectedNextResponse
   | EjectedNotFoundResponse
@@ -73,5 +73,5 @@ export type EjectedRouter = {
   publicFiles: string[];
   hooks: RouterHooksConfig;
   branches: Branch[];
-  imports: Array<[location: string, type: "middleware" | "rewrite"]>;
+  imports: Array<[location: string, type: "middleware" | "forward"]>;
 };

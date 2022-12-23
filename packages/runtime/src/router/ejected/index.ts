@@ -4,7 +4,7 @@ import {
   DynamicSegment,
   EjectedMiddleware,
   EjectedNextResponse,
-  EjectedRewrite,
+  EjectedForward,
   EjectedRouter,
   PathSegmentSwitch,
   RouterHooksConfig,
@@ -18,7 +18,7 @@ export type {
   DynamicSegment,
   EjectedMiddleware,
   EjectedNextResponse,
-  EjectedRewrite,
+  EjectedForward,
   EjectedRouter,
   PathSegmentSwitch,
   RouterHooksConfig,
@@ -27,11 +27,11 @@ export type {
 const getSegmentHash = (location: string) =>
   createHash("sha1").update(location).digest("hex").slice(0, 10);
 
-const renderRetrurnNext = ({ rewrite }: EjectedNextResponse) =>
-  (rewrite
+const renderRetrurnNext = ({ internalPath }: EjectedNextResponse) =>
+  (internalPath
     ? `
 next = (final_params) =>
-  \`${rewrite.replace(/\/(:[^/]*)/gm, (match, value) => {
+  \`${internalPath.replace(/\/(:[^/]*)/gm, (match, value) => {
     return match.replace(value, `\${final_params.${value.slice(1)}}`);
   })}\`
 `
@@ -89,10 +89,10 @@ const renderHooksImport = (hooks: RouterHooksConfig) => {
   else return "";
 };
 
-const importTypes = ["rewrite", "middleware"] as const;
+const importTypes = ["forward", "middleware"] as const;
 
 export const renderDynamicImports = (
-  imports: Array<[string, "middleware" | "rewrite"]>
+  imports: Array<[string, "middleware" | "forward"]>
 ) =>
   `
 ${Array.from(
@@ -152,8 +152,10 @@ export const middleware: NextMiddleware = async (nextRequest, ev) => {
       internals.nextUrl || (internals.nextUrl = nextRequest.nextUrl.clone()),
   });
   Object.defineProperty(req, "headers", {
-    get: () =>
-      internals.requestHeaders || (internals.requestHeaders = new Headers()),
+    get: () => nextRequest.headers
+  });
+  Object.defineProperty(req, "cookies", {
+    get: () => nextRequest.cookies
   });
   Object.defineProperty(req, "params", {
     get: () => ({
@@ -273,7 +275,7 @@ export const middleware: NextMiddleware = async (nextRequest, ev) => {
   ${
     router.hooks.response
       ? `
-  ev.waitUntil(Promise.resolve(responseHook(response)));
+  ev.waitUntil(Promise.resolve(responseHook(response.clone())));
   `
       : ""
   }
@@ -318,24 +320,22 @@ ${renderSwitchStatement({
 })}
 `.trim();
 
-const renderRewrite = ({
+const renderForward = ({
   then,
-  rewrite,
+  forward,
   name,
   location,
   internalPath,
-}: EjectedRewrite) =>
+}: EjectedForward) =>
   `
-const rewrite_response = await (await rewrite_${getSegmentHash(
-    location
-  )}.then(({
-  ${name}: rewrite
-}) => rewrite))(
+const forward_response = await forward_${getSegmentHash(location)}.then(({
+  ${name}: forward
+}) => forward(
   req as NextMiddlewareRequest<Params<"${internalPath}">>,
   res
-);
+));
 ${renderSwitchStatement({
-  statement: "rewrite_response",
+  statement: "forward_response",
   cases: [
     [
       ["void 0"],
@@ -346,8 +346,8 @@ ${renderSwitchStatement({
     ],
   ],
   default: `{
-    params.${name} = rewrite_response!;
-    ${renderBranch(rewrite || { type: BranchTypes.NOT_FOUND })}
+    params.${name} = forward_response!;
+    ${renderBranch(forward || { type: BranchTypes.NOT_FOUND })}
     break;
   }`,
 })}
@@ -364,8 +364,8 @@ const renderBranch = (branch: Branch): string => {
     case BranchTypes.MIDDLEWARE: {
       return renderMiddleware(branch);
     }
-    case BranchTypes.REWRITE: {
-      return renderRewrite(branch);
+    case BranchTypes.FORWARD: {
+      return renderForward(branch);
     }
     case BranchTypes.SWITCH: {
       return renderPathSwitch(branch);

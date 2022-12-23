@@ -1,5 +1,8 @@
 import type { NextURL } from "next/dist/server/web/next-url";
-import type { ResponseCookies } from "next/dist/server/web/spec-extension/cookies/response-cookies";
+import {
+  RequestCookies,
+  ResponseCookies,
+} from "next/dist/server/web/spec-extension/cookies";
 import type { NextResponse } from "next/server";
 
 /**
@@ -22,6 +25,7 @@ export type NextMiddlewareRequest<Param extends DefaultParam = DefaultParam> = {
   readonly headers: Headers;
   readonly params: Param;
   readonly search: URLSearchParams;
+  readonly cookies: RequestCookies;
   readonly waitUntil: (promise: Promise<any>) => void;
 };
 
@@ -32,7 +36,6 @@ export type NextMiddlewareResponse = {
 
 export type NextMiddlewareInternals = {
   responseHeaders?: Headers;
-  requestHeaders?: Headers;
   cookies?: ResponseCookies;
   nextUrl?: NextURL;
   searchParams?: URLSearchParams;
@@ -47,8 +50,7 @@ export type GenericHook<ExtraArgs extends any[] = []> = (
 ) => OptionalPromise<NextResponse | undefined>;
 
 export type ParamsHook = (
-  req: NextMiddlewareRequest,
-  res: NextMiddlewareResponse
+  params: ParamType
 ) => OptionalPromise<ParamType | undefined>;
 
 export type RewriteHook = GenericHook<[destination: string]>;
@@ -58,8 +60,6 @@ export type RedirectHook = GenericHook<[destination: string, status?: number]>;
 export type JsonHook = GenericHook<[data: unknown]>;
 
 export type ResponseHook = (res: NextResponse) => OptionalPromise<void>;
-
-export type SegmentInfo = readonly [location: string];
 
 export type MiddleWareHandlerResult =
   | { redirect: string | URL | NextURL; status?: number }
@@ -71,27 +71,6 @@ export type MiddlewareHandler<Param extends DefaultParam = DefaultParam> = (
   req: NextMiddlewareRequest<Param>,
   res: NextMiddlewareResponse
 ) => MiddleWareHandlerResult | Promise<MiddleWareHandlerResult>;
-
-export enum MiddlewareTypes {
-  MIDDLEWARE,
-  FORWARDER,
-}
-
-export type MiddlewareHandlerSegment<
-  Param extends DefaultParam = DefaultParam
-> = readonly [
-  type: MiddlewareTypes.MIDDLEWARE,
-  middleware: () => Promise<MiddlewareHandler<Param>>,
-  info: SegmentInfo
-];
-
-export type ResolvedMiddlewareHandlerSegment<
-  Param extends DefaultParam = DefaultParam
-> = readonly [
-  type: MiddlewareTypes.MIDDLEWARE,
-  middleware: Promise<MiddlewareHandler<Param>>,
-  info: SegmentInfo
-];
 
 export type Forwarder<Param extends DefaultParam = DefaultParam> = (
   req: NextMiddlewareRequest<Param>,

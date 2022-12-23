@@ -1,14 +1,3 @@
-export type SegmentHashes = {
-  middleware: string | false;
-  rewrite: Record<string, string>;
-};
-
-export type SegmentFiles = {
-  page?: string;
-  middleware?: string;
-  rewrite?: string;
-};
-
 export type LayoutType<T> = [
   T,
   LayoutType<T> | 1 | undefined,
@@ -16,7 +5,7 @@ export type LayoutType<T> = [
 ];
 
 export type SegmentLayout = {
-  rewrite: string[];
+  forward: string[];
   page: boolean;
   middleware: boolean;
   location: string;
@@ -27,7 +16,7 @@ export type SegmentLayout = {
   hash: string;
   dynamic?: string;
   children: Record<string, SegmentLayout>;
-  files: SegmentFiles;
+  // files: SegmentFiles;
   parent?: () => SegmentLayout;
 };
 

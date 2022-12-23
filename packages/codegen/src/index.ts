@@ -6,7 +6,6 @@ import {
 } from "@next-app-middleware/runtime/dist/router/ejected";
 import { parse } from "@swc/core";
 import { watch } from "chokidar";
-import { createHash } from "crypto";
 import fse from "fs-extra";
 import _glob from "glob";
 import { join } from "path";
@@ -41,14 +40,14 @@ const pageRegex = /^(page\.(?:tsx|jsx?))$/;
 const findPage = (filesAndFolders: string[]) =>
   filesAndFolders.find((fileOrfolder) => pageRegex.test(fileOrfolder));
 
-const rewriteRegex = /^(rewrite\.(?:t|j)s)$/;
-const findRewrite = (filesAndFolders: string[]) =>
-  filesAndFolders.find((fileOrfolder) => rewriteRegex.test(fileOrfolder));
+const forwardRegex = /^(forward\.(?:t|j)s)$/;
+const findForward = (filesAndFolders: string[]) =>
+  filesAndFolders.find((fileOrfolder) => forwardRegex.test(fileOrfolder));
 
-const collectRewrites = async (dir: string, filesAndFolders: string[]) => {
-  const rewriteFile = findRewrite(filesAndFolders);
-  if (rewriteFile) {
-    return await collectModuleExports(join(dir, rewriteFile));
+const collectForwards = async (dir: string, filesAndFolders: string[]) => {
+  const forwardFile = findForward(filesAndFolders);
+  if (forwardFile) {
+    return await collectModuleExports(join(dir, forwardFile));
   } else return [];
 };
 
@@ -56,7 +55,7 @@ const collectChildren = async (
   dir: string,
   externalPath: string,
   filesAndFolders: string[],
-  rewrite: string[],
+  forward: string[],
   getParent: () => SegmentLayout
 ) => {
   const children: Record<string, SegmentLayout> = {};
@@ -68,24 +67,24 @@ const collectChildren = async (
           children[fileOrFolder] = await collectLayout(
             join(dir, fileOrFolder),
             externalPath,
-            rewrite,
+            forward,
             getParent
           );
         } else {
           const match = dynamicSegmentRegex.exec(fileOrFolder);
           if (match) {
-            if (rewrite.includes(match[1])) {
+            if (forward.includes(match[1])) {
               children[fileOrFolder] = await collectLayout(
                 join(dir, fileOrFolder),
                 externalPath,
-                rewrite,
+                forward,
                 getParent
               );
             } else {
               children[fileOrFolder] = await collectLayout(
                 join(dir, fileOrFolder),
                 join(externalPath, `:${match[1]}`),
-                rewrite,
+                forward,
                 getParent
               );
             }
@@ -93,7 +92,7 @@ const collectChildren = async (
             children[fileOrFolder] = await collectLayout(
               join(dir, fileOrFolder),
               join(externalPath, fileOrFolder),
-              rewrite,
+              forward,
               getParent
             );
           }
@@ -107,15 +106,15 @@ const collectChildren = async (
 const collectLayout = async (
   dir: string = "app",
   externalPath = "/",
-  parentRewrite: string[] = [],
+  parentForward: string[] = [],
   getParent?: () => SegmentLayout
 ) => {
   const filesAndFolders = await readdir(dir);
   const [currentSegment] = dir.split("/").reverse();
   const dynamic = dynamicSegmentRegex.exec(currentSegment)?.[1];
-  const rewrite = isRouteGroupSegment(currentSegment)
-    ? parentRewrite
-    : await collectRewrites(dir, filesAndFolders);
+  const forward = isRouteGroupSegment(currentSegment)
+    ? parentForward
+    : await collectForwards(dir, filesAndFolders);
   const hash =
     externalPath === "/"
       ? "/"
@@ -125,7 +124,7 @@ const collectLayout = async (
           .join("/") + "/";
   const layoutPage = findPage(filesAndFolders);
   const layoutMiddleware = findMiddleware(filesAndFolders);
-  const layoutRewrite = findRewrite(filesAndFolders);
+  const layoutForward = findForward(filesAndFolders);
   const layout: SegmentLayout = {
     location: dir,
     internalPath:
@@ -149,19 +148,14 @@ const collectLayout = async (
     group: isRouteGroupSegment(currentSegment),
     hash,
     dynamic,
-    rewrite,
+    forward,
     page: !!layoutPage,
     middleware: !!layoutMiddleware,
-    files: {
-      middleware: layoutMiddleware,
-      page: layoutPage,
-      rewrite: layoutRewrite,
-    },
     children: await collectChildren(
       dir,
       externalPath,
       filesAndFolders,
-      rewrite,
+      forward,
       () => layout
     ),
     parent: getParent,
@@ -249,14 +243,14 @@ const validateLayout = (externalLayout: ExternalLayout) => {
 type MergedRoute = [
   current: SegmentLayout,
   next?: MergedRoute | SegmentLayout,
-  rewrite?: MergedRoute
+  forward?: MergedRoute
 ];
 
 type FlattenedRoute = [
   currentSegment: SegmentLayout,
   type: 0 | string,
   next?: FlattenedRoute | SegmentLayout,
-  rewrite?: FlattenedRoute | SegmentLayout
+  forward?: FlattenedRoute | SegmentLayout
 ];
 
 const resolveLayouts = (pages: SegmentLayout[]) => {
@@ -271,21 +265,21 @@ const resolveLayouts = (pages: SegmentLayout[]) => {
 };
 
 const filterDynamicRoutes =
-  (rewrite: string[]) =>
+  (forward: string[]) =>
   ([page, ...rest]: SegmentLayout[]) => {
     let current: SegmentLayout | undefined = page;
     while (current && current.group) current = rest.shift();
     if (!current) return false;
-    return current.dynamic && rewrite.includes(current.dynamic);
+    return current.dynamic && forward.includes(current.dynamic);
   };
 
 const filterNextRoutes =
-  (rewrite: string[]) =>
+  (forward: string[]) =>
   ([page, ...rest]: SegmentLayout[]) => {
     let current: SegmentLayout | undefined = page;
     while (current && current.group) current = rest.shift();
     if (!current) return true;
-    return !current.dynamic || !rewrite.includes(current.dynamic);
+    return !current.dynamic || !forward.includes(current.dynamic);
   };
 
 // this assumes that the first page in each collection is the same
@@ -293,8 +287,8 @@ const mergeLayouts = (pages: SegmentLayout[][]): MergedRoute => {
   const [[currentPage]] = pages;
   const nextPages = pages.map(([, ...pages]) => pages);
   const hasLast = !!nextPages.find((pages) => pages.length === 0);
-  const nexts = nextPages.filter(filterNextRoutes(currentPage.rewrite));
-  const rewrites = nextPages.filter(filterDynamicRoutes(currentPage.rewrite));
+  const nexts = nextPages.filter(filterNextRoutes(currentPage.forward));
+  const forwards = nextPages.filter(filterDynamicRoutes(currentPage.forward));
   if (hasLast && nexts.length > 1) {
     throw new Error("1");
   }
@@ -303,26 +297,26 @@ const mergeLayouts = (pages: SegmentLayout[][]): MergedRoute => {
     : nexts.length
     ? mergeLayouts(nexts)
     : undefined;
-  const rewrite = rewrites.length ? mergeLayouts(rewrites) : undefined;
-  return [currentPage, next, rewrite];
+  const forward = forwards.length ? mergeLayouts(forwards) : undefined;
+  return [currentPage, next, forward];
 };
 
-const getNextDynamicParam = ([current, , rewrite]: MergedRoute): string => {
+const getNextDynamicParam = ([current, , forward]: MergedRoute): string => {
   if (current.dynamic) return current.dynamic;
-  else if (!rewrite) throw new Error("getNextDynamicParam");
-  else return getNextDynamicParam(rewrite);
+  else if (!forward) throw new Error("getNextDynamicParam");
+  else return getNextDynamicParam(forward);
 };
 
-const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
+const flattenMergedRoute = ([current, next, forward]: MergedRoute):
   | FlattenedRoute
   | SegmentLayout
   | undefined => {
   if (current.middleware) {
-    if (rewrite) {
+    if (forward) {
       const flattenedRoute: FlattenedRoute = [
         current,
         0,
-        flattenMergedRoute([{ ...current, middleware: false }, next, rewrite]),
+        flattenMergedRoute([{ ...current, middleware: false }, next, forward]),
       ];
       return flattenedRoute;
     } else {
@@ -330,17 +324,17 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
         current,
         0,
         next instanceof Array ? flattenMergedRoute(next) : next && next,
-        rewrite && flattenMergedRoute(rewrite),
+        forward && flattenMergedRoute(forward),
       ];
       return flattenedRoute;
     }
-  } else if (rewrite) {
-    const param = getNextDynamicParam(rewrite);
+  } else if (forward) {
+    const param = getNextDynamicParam(forward);
     const flattenedRoute: FlattenedRoute = [
       current,
       param,
       next instanceof Array ? flattenMergedRoute(next) : next,
-      rewrite && flattenMergedRoute(rewrite),
+      forward && flattenMergedRoute(forward),
     ];
     return flattenedRoute;
   } else {
@@ -350,13 +344,13 @@ const flattenMergedRoute = ([current, next, rewrite]: MergedRoute):
 };
 
 const traverseRoute = <T>(
-  [current, type, next, rewrite]: FlattenedRoute,
+  [current, type, next, forward]: FlattenedRoute,
   onSegment: (segment: SegmentLayout, type: 0 | string) => T
 ): LayoutType<T> => {
   return [
     onSegment(current, type),
     next instanceof Array ? traverseRoute(next, onSegment) : 1,
-    rewrite instanceof Array ? traverseRoute(rewrite, onSegment) : 1,
+    forward instanceof Array ? traverseRoute(forward, onSegment) : 1,
   ];
 };
 
@@ -377,13 +371,13 @@ const generate = async () => {
     const mergedRoutes = mergeLayouts(resolvedLayouts);
     return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
   });
-  const imported: Array<[string, "rewrite" | "middleware"]> = [];
+  const imported: Array<[string, "forward" | "middleware"]> = [];
   routes.forEach(([, route]) => {
     traverseRoute(route, (segment, type) => {
       if (type === 0) {
         imported.push([segment.location, "middleware"]);
       } else {
-        imported.push([segment.location, "rewrite"]);
+        imported.push([segment.location, "forward"]);
       }
     });
   });
@@ -507,12 +501,14 @@ const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
   }
   return {
     type: BranchTypes.NEXT,
-    rewrite: page.internalPath.includes("/:") ? page.internalPath : undefined,
+    internalPath: page.internalPath.includes("/:")
+      ? page.internalPath
+      : undefined,
   };
 };
 
 const ejectRoute = (
-  [currentSegment, type, next, rewrite]: FlattenedRoute,
+  [currentSegment, type, next, forward]: FlattenedRoute,
   appliedParams = new Set<string>()
 ): Branch => {
   const segments = currentSegment.externalPath.split("/");
@@ -528,7 +524,7 @@ const ejectRoute = (
       type: BranchTypes.DYNAMIC,
       name,
       index,
-      then: ejectRoute([currentSegment, type, next, rewrite], appliedParams),
+      then: ejectRoute([currentSegment, type, next, forward], appliedParams),
     };
   }
   if (typeof type === "number") {
@@ -547,7 +543,7 @@ const ejectRoute = (
     };
   } else {
     return {
-      type: BranchTypes.REWRITE,
+      type: BranchTypes.FORWARD,
       name: type,
       internalPath: currentSegment.internalPath,
       location: currentSegment.location,
@@ -559,11 +555,11 @@ const ejectRoute = (
           : {
               type: BranchTypes.NOT_FOUND,
             },
-      rewrite:
-        rewrite instanceof Array
-          ? ejectRoute(rewrite, appliedParams)
-          : rewrite
-          ? ejectPage(rewrite, appliedParams)
+      forward:
+        forward instanceof Array
+          ? ejectRoute(forward, appliedParams)
+          : forward
+          ? ejectPage(forward, appliedParams)
           : {
               type: BranchTypes.NOT_FOUND,
             },
@@ -611,7 +607,7 @@ export const dev = async () => {
     .on("add", runBuild("added"))
     .on("unlink", runBuild("deleted"));
 
-  watch("app/**/rewrite.{ts,js}", { ignoreInitial: true })
+  watch("app/**/forward.{ts,js}", { ignoreInitial: true })
     .add("./middleware.hooks.{ts,js}")
     .on("add", runBuild("added"))
     .on("unlink", runBuild("deleted"))
