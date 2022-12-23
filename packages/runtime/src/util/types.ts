@@ -14,7 +14,14 @@ export type ParamKeys<Path> = Path extends `${infer Component}/${infer Rest}`
   ? ParamKey<Component> | ParamKeys<Rest>
   : ParamKey<Path>;
 
-export type Params<Path> = Record<ParamKeys<Path>, string>;
+type CatchAllKey<Component> = Component extends `*${infer Name}` ? Name : never;
+
+export type CatchAllKeys<Path> = Path extends `${infer Component}/${infer Rest}`
+  ? CatchAllKey<Component> | CatchAllKeys<Rest>
+  : CatchAllKey<Path>;
+
+export type Params<Path> = Record<ParamKeys<Path>, string> &
+  Record<CatchAllKeys<Path>, string[]>;
 
 export type ParamType = Record<string, string>;
 
