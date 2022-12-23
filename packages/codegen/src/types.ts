@@ -22,3 +22,16 @@ export type SegmentLayout = {
 };
 
 export type ExternalLayout = Record<string, SegmentLayout[]>;
+
+export type MergedRoute = [
+  current: SegmentLayout,
+  next?: MergedRoute | SegmentLayout,
+  forward?: MergedRoute
+];
+
+export type FlattenedRoute = [
+  currentSegment: SegmentLayout,
+  type: 0 | string,
+  next?: FlattenedRoute | SegmentLayout,
+  forward?: FlattenedRoute | SegmentLayout
+];
