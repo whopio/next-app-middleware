@@ -6,6 +6,8 @@ export type LayoutType<T> = [
 
 export type SegmentLayout = {
   forward: string[];
+  rewrite: boolean;
+  redirect: boolean;
   page: boolean;
   middleware: boolean;
   location: string;
@@ -16,7 +18,6 @@ export type SegmentLayout = {
   hash: string;
   dynamic?: string;
   children: Record<string, SegmentLayout>;
-  // files: SegmentFiles;
   parent?: () => SegmentLayout;
 };
 

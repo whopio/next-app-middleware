@@ -44,6 +44,14 @@ export const locale = () => {
 
 In this example the forward.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
 
+### app/\*\*/rewrite.{ts,js}
+
+A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but is expected to return the final location the request will be routed to. Can not be used to rewrite the host.
+
+### app/\*\*/redirect.{ts,js}
+
+Similar to rewrite.ts but results in a redirect instead of a rewrite
+
 ### middleware.hooks.{ts,js}
 
 A collection of hooks that can be used to extend the middleware lifecylce
@@ -119,14 +127,6 @@ export const response: ResponseHook = (response) => {
 ```
 
 ## soon
-
-### app/\*\*/rewrite.{ts,js}
-
-A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but is expected to return the final location the request will be routed to. Can not be used to rewrite the host.
-
-### app/\*\*/redirect.{ts,js}
-
-Similar to rewrite.ts but results in a redirect instead of a rewrite
 
 ### catch all segments
 

@@ -1,25 +1,31 @@
+import { createHash } from "crypto";
 import {
   Branch,
   BranchTypes,
   DynamicSegment,
+  EjectedForward,
   EjectedMiddleware,
   EjectedNextResponse,
-  EjectedForward,
+  EjectedRedirect,
+  EjectedRewrite,
   EjectedRouter,
+  Imports,
   PathSegmentSwitch,
   RouterHooksConfig,
 } from "./types";
-import { createHash } from "crypto";
 
 export { BranchTypes };
 
 export type {
   Branch,
   DynamicSegment,
+  EjectedForward,
   EjectedMiddleware,
   EjectedNextResponse,
-  EjectedForward,
+  EjectedRedirect,
+  EjectedRewrite,
   EjectedRouter,
+  Imports,
   PathSegmentSwitch,
   RouterHooksConfig,
 };
@@ -89,23 +95,27 @@ const renderHooksImport = (hooks: RouterHooksConfig) => {
   else return "";
 };
 
-const importTypes = ["forward", "middleware"] as const;
+const importTypes: (keyof Imports)[] = [
+  "middleware",
+  "forward",
+  "rewrite",
+  "redirect",
+];
 
-export const renderDynamicImports = (
-  imports: Array<[string, "middleware" | "forward"]>
-) =>
+export const renderDynamicImports = (imports: Imports) =>
   `
-${Array.from(
-  new Set(
-    imports
-      .sort((a, b) => importTypes.indexOf(b[1]) - importTypes.indexOf(a[1]))
-      .map(([location, type]) =>
+${(Object.keys(imports) as (keyof Imports)[])
+  .sort((a, b) => importTypes.indexOf(a) - importTypes.indexOf(b))
+  .map((type) =>
+    Array.from(imports[type])
+      .map((location) =>
         `
-const ${type}_${getSegmentHash(location)} = import("./${location}/${type}");
-`.trim()
+    const ${type}_${getSegmentHash(location)} = import("./${location}/${type}");
+  `.trim()
       )
+      .join("\n")
   )
-).join("\n")}
+  .join("\n")}
 `.trim();
 
 export const renderRouter = (router: EjectedRouter) =>
@@ -288,20 +298,32 @@ export const config = {
 }
 `.trim();
 
+const renderHandler = (
+  type: string,
+  location: string,
+  internalPath: string,
+  imports = "default"
+) =>
+  `
+${type}_${getSegmentHash(location)}.then(({
+  ${imports}: ${type}
+}) => ${type}(
+  req as NextMiddlewareRequest<Params<"${internalPath}">>,
+  res
+))
+`.trim();
+
 const renderMiddleware = ({
   then,
   internalPath,
   location,
 }: EjectedMiddleware) =>
   `
-middleware_response = await (await middleware_${getSegmentHash(
-    location
-  )}.then(({
-  default: middleware
-}) => middleware))(
-  req as NextMiddlewareRequest<Params<"${internalPath}">>,
-  res
-);
+middleware_response = await ${renderHandler(
+    "middleware",
+    location,
+    internalPath
+  )};
 ${renderSwitchStatement({
   statement: "middleware_response",
   cases: [
@@ -328,12 +350,12 @@ const renderForward = ({
   internalPath,
 }: EjectedForward) =>
   `
-const forward_response = await forward_${getSegmentHash(location)}.then(({
-  ${name}: forward
-}) => forward(
-  req as NextMiddlewareRequest<Params<"${internalPath}">>,
-  res
-));
+const forward_response = await ${renderHandler(
+    "forward",
+    location,
+    internalPath,
+    name
+  )};
 ${renderSwitchStatement({
   statement: "forward_response",
   cases: [
@@ -352,6 +374,78 @@ ${renderSwitchStatement({
   }`,
 })}
 `.trim();
+
+const renderRewrite = ({
+  location,
+  fallback,
+  internalPath,
+}: EjectedRewrite) => `
+const rewrite_response = await ${renderHandler(
+  "rewrite",
+  location,
+  internalPath
+)};
+${renderSwitchStatement({
+  statement: "typeof rewrite_response",
+  cases: [
+    [
+      ["'undefined'"],
+      `{
+    ${renderBranch(fallback || { type: BranchTypes.NOT_FOUND })}
+    break;
+  }`,
+    ],
+  ],
+  default: `{
+    middleware_response = {
+      rewrite: rewrite_response
+    }
+    break;
+  }`,
+})}
+`;
+
+const renderRedirect = ({
+  location,
+  internalPath,
+  fallback,
+}: EjectedRedirect) => `
+const redirect_response = await ${renderHandler(
+  "redirect",
+  location,
+  internalPath
+)};
+${renderSwitchStatement({
+  statement: "typeof redirect_response",
+  cases: [
+    [
+      ["'undefined'"],
+      `{
+    ${renderBranch(fallback || { type: BranchTypes.NOT_FOUND })}
+    break;
+  }`,
+    ],
+    [
+      ["'string'"],
+      `{
+        middleware_response = {
+          redirect: redirect_response
+        }
+        break;
+      }`,
+    ],
+  ],
+  default: `{
+    middleware_response = "destination" in redirect_response ? {
+      redirect: redirect_response.destination,
+      status: redirect_response.status
+    } : {
+      redirect: redirect_response
+    }
+    break;
+  }`,
+})}
+`;
 
 const renderDynamic = ({ name, index, then }: DynamicSegment) =>
   `
@@ -378,6 +472,12 @@ const renderBranch = (branch: Branch): string => {
     }
     case BranchTypes.DYNAMIC: {
       return renderDynamic(branch);
+    }
+    case BranchTypes.REWRITE: {
+      return renderRewrite(branch);
+    }
+    case BranchTypes.REDIRECT: {
+      return renderRedirect(branch);
     }
     default: {
       const exhaustive: never = branch;
@@ -430,10 +530,11 @@ ${tests.map((test) => `case ${test}:`).join("\n")}
   ${body}
 `.trim();
 
-const renderSwitchStatement = (
-  { cases, default: defaultMatch, statement }: RenderSwitchStatementOptions,
-  tabs = 0
-) =>
+const renderSwitchStatement = ({
+  cases,
+  default: defaultMatch,
+  statement,
+}: RenderSwitchStatementOptions) =>
   `
 switch (${statement}) {
   ${cases.map((_case) => renderSwitchCase(..._case)).join("\n")}
@@ -441,15 +542,9 @@ switch (${statement}) {
     ${defaultMatch}
   
 }
-`
-    .trim()
-    .split("\n")
-    .map((val, idx) => (idx ? "  ".repeat(tabs) + val : val))
-    .join("\n");
+`.trim();
 
-export {};
-
-function benchmark(method: () => unknown, methodName: string) {
+/* function benchmark(method: () => unknown, methodName: string) {
   const times: bigint[] = [];
 
   for (let i = 0; i < 1000000; i++) {
@@ -470,4 +565,4 @@ function benchmark(method: () => unknown, methodName: string) {
       Number(maxTime) / 1000000
     ).toFixed(5)}ms)`
   );
-}
+} */
