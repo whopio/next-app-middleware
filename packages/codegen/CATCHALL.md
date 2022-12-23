@@ -58,10 +58,6 @@ switch (segments[0]) {
                           matched = true;
                           break;
                         }
-                        default: {
-                          notFound = true;
-                          break;
-                        }
                       }
                       break;
                     }
@@ -83,11 +79,8 @@ switch (segments[0]) {
                               matched = true;
                               break;
                             }
-                            default: {
-                              notFound = true;
-                              break;
-                            }
                           }
+                          break;
                         }
                         default: {
                           const param = [segments[idx + 1]];
@@ -132,7 +125,7 @@ switch (segments[0]) {
                             param.push(segments[idx]);
                             idx++;
                           }
-                          notFound = matched;
+                          notFound = !matched;
                           break;
                         }
                       }
@@ -144,7 +137,7 @@ switch (segments[0]) {
               param.push(segments[idx]);
               idx++;
             }
-            notFound = matched;
+            notFound = !matched;
             break;
           }
         }
