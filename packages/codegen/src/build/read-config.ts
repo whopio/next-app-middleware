@@ -13,6 +13,7 @@ const defaultHooksConfig: RouterHooksConfig = {
   json: false,
   params: false,
   response: false,
+  error: false,
 };
 
 const readHooksConfig = async () => {

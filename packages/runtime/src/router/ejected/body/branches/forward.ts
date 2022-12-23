@@ -29,7 +29,13 @@ ${renderSwitchStatement({
   ],
   default: `{
     params.${name} = forward_response!;
-    ${renderBranch(forward || { type: BranchTypes.NOT_FOUND })}
+    ${
+      forward
+        ? renderBranch(forward)
+        : `
+      throw new Error("Exptected forward at ${location} to return a response as no internal path mathes the request");
+    `
+    }
     break;
   }`,
 })}

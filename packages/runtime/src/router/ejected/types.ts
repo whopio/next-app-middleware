@@ -84,6 +84,7 @@ export type RouterHooksConfig = {
   json: boolean;
   params: boolean;
   response: boolean;
+  error: boolean;
 };
 
 export type Imports = {

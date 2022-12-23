@@ -36,9 +36,9 @@ switch (segments[0]) {
             break;
           }
           default: {
-            const param = [segments[idx + 1], segments[idx + 2]];
+            const param = [segments[idx + 1]];
             catchAll.push(param);
-            let idx = idx + 3;
+            let idx = idx + 2;
             let matched = false;
             while (!matched && idx < segments.length) {
               switch (segments[idx]) {
@@ -148,6 +148,80 @@ switch (segments[0]) {
   }
   default: {
     notFound = true;
+    break;
+  }
+}
+```
+
+turns out this cant happen! its not valid for the catch all to not be the last part of the URL which also makes it impossible for multiple catch all segments to exist.
+
+updated:
+
+Assuming the following routes have pages/endpoints
+
+- `/:test1/test/`
+- `/*test1/`
+- `/test/test/test1*/`
+- `/:test1/test/test2*/`
+
+resulting matcher:
+
+```ts
+switch (segments[0]) {
+  case "test": {
+    switch (segments[1]) {
+      case "test": {
+        // /test/test/test1*/
+        const [,,...catchAll] = segments;
+        params.test1 = catchAll;
+        break;
+      }
+      default: {
+        notFound = true;
+        break;
+      }
+    }
+    break;
+  }
+  case "": {
+    notFound = true;
+    break;
+  }
+  default {
+    // this is the behaviour for a segment that can either be a single
+    // dynamic segment or a catch all:
+    // first try to match as if the catch-all didnt exist
+    switch (segments[1]) {
+      case "test": {
+        switch (segments[2]) {
+          case "": {
+            // /:test1/test/
+            params.test1 = segments[0];
+          }
+          default {
+            // /:test1/test/test2*/
+            // this is the rendered output when there is a c
+            // atch-all with no dynamic segment at the same level
+            params.test1 = segments[0];
+            const [, , ...catchAll] = segments;
+            params.test2 = catchAll;
+          }
+        }
+      }
+      default: {
+        notFound = true;
+        break;
+      }
+    }
+    // if the matcher above does not match anything the catch-all
+    // got hit
+    if (notFound) {
+      // /*test1/
+      notFound = false;
+      const [...catchAll] = segments;
+      params.test1 = catchAll;
+      break;
+    }
     break;
   }
 }

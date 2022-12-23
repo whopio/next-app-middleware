@@ -30,7 +30,19 @@ const renderBody = ({ hooks, branches }: EjectedRouter) =>
   `
 export const middleware: NextMiddleware = async (nextRequest, ev) => {
   ${bodyHead}
-  ${renderBranches(branches)}
+  try {
+    ${renderBranches(branches)}
+  } catch (e) {
+    const error = e instance of Error ? e : new Error(\`Runtime Exception: \${e}\`);
+    ${
+      hooks.error
+        ? `
+      response = await errorHook(req, res, error);
+      if (!response) throw error;
+    `
+        : "throw error"
+    }
+  }
   ${renderBodyFooter(hooks)}
 }
 `.trim();
