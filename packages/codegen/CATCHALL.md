@@ -15,6 +15,7 @@ the resulting matcher should look like this:
 
 ```ts
 const catchAll: string[][] = [];
+let idx = 0;
 switch (segments[0]) {
   case "test": {
     switch (segments[1]) {
@@ -32,11 +33,12 @@ switch (segments[0]) {
                 break;
               }
             }
+            break;
           }
           default: {
-            const param = [segments[1], segments[2]];
+            const param = [segments[idx + 1], segments[idx + 2]];
             catchAll.push(param);
-            let idx = 3;
+            let idx = idx + 3;
             let matched = false;
             while (!matched && idx < segments.length) {
               switch (segments[idx]) {
@@ -130,7 +132,7 @@ switch (segments[0]) {
                             param.push(segments[idx]);
                             idx++;
                           }
-                          notFound = true;
+                          notFound = matched;
                           break;
                         }
                       }
@@ -142,7 +144,7 @@ switch (segments[0]) {
               param.push(segments[idx]);
               idx++;
             }
-            notFound = true;
+            notFound = matched;
             break;
           }
         }
