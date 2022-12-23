@@ -5,6 +5,8 @@ export enum BranchTypes {
   NEXT,
   NOT_FOUND,
   DYNAMIC,
+  REWRITE,
+  REDIRECT,
 }
 
 export type EjectedMiddleware = {
@@ -44,6 +46,20 @@ export type EjectedNextResponse = {
   internalPath?: string;
 };
 
+export type EjectedRewrite = {
+  type: BranchTypes.REWRITE;
+  location: string;
+  internalPath: string;
+  fallback?: Branch;
+};
+
+export type EjectedRedirect = {
+  type: BranchTypes.REDIRECT;
+  location: string;
+  internalPath: string;
+  fallback?: Branch;
+};
+
 export type DynamicSegment = {
   type: BranchTypes.DYNAMIC;
   name: string;
@@ -57,6 +73,8 @@ export type Branch =
   | PathSegmentSwitch
   | EjectedNextResponse
   | EjectedNotFoundResponse
+  | EjectedRedirect
+  | EjectedRewrite
   | DynamicSegment;
 
 export type RouterHooksConfig = {
@@ -68,10 +86,17 @@ export type RouterHooksConfig = {
   response: boolean;
 };
 
+export type Imports = {
+  middleware: Set<string>;
+  rewrite: Set<string>;
+  forward: Set<string>;
+  redirect: Set<string>;
+};
+
 export type EjectedRouter = {
   segmentAmount: number;
   publicFiles: string[];
   hooks: RouterHooksConfig;
   branches: Branch[];
-  imports: Array<[location: string, type: "middleware" | "forward"]>;
+  imports: Imports;
 };

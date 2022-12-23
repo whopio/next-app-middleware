@@ -1,6 +1,7 @@
 import {
   Branch,
   BranchTypes,
+  Imports,
   renderRouter,
   RouterHooksConfig,
 } from "@next-app-middleware/runtime/dist/router/ejected";
@@ -15,6 +16,18 @@ import { ExternalLayout, LayoutType, SegmentLayout } from "./types";
 
 const { readFile, readdir, stat, outputFile } = fse;
 const glob = promisify(_glob);
+
+const makeLogger =
+  (logger: (...args: any[]) => void, colorPrefix: string) =>
+  (...args: any[]) => {
+    logger.bind(console)(colorPrefix, "middleware", "-", ...args);
+  };
+
+const event = makeLogger(console.info, "\x1b[35m%s\x1b[0m");
+const warn = makeLogger(console.warn, "\x1b[33m%s\x1b[0m");
+const error = makeLogger(console.error, "\x1b[31m%s\x1b[0m");
+const success = makeLogger(console.info, "\x1b[32m%s\x1b[0m");
+const info = makeLogger(console.info, "\x1b[36m%s\x1b[0m");
 
 const defaultHooksConfig: RouterHooksConfig = {
   notFound: false,
@@ -32,17 +45,23 @@ const routeGroupSegmentRegex = /\((.*)\)/;
 const isRouteGroupSegment = (segment: string) =>
   routeGroupSegmentRegex.test(segment);
 
+const makeFind = (regex: RegExp) => (filesAndFolders: string[]) =>
+  filesAndFolders.find((fileOrfolder) => regex.test(fileOrfolder));
+
 const middlewareRegex = /^(middleware\.(?:t|j)s)$/;
-const findMiddleware = (filesAndFolders: string[]) =>
-  filesAndFolders.find((fileOrfolder) => middlewareRegex.test(fileOrfolder));
+const findMiddleware = makeFind(middlewareRegex);
 
 const pageRegex = /^(page\.(?:tsx|jsx?))$/;
-const findPage = (filesAndFolders: string[]) =>
-  filesAndFolders.find((fileOrfolder) => pageRegex.test(fileOrfolder));
+const findPage = makeFind(pageRegex);
 
 const forwardRegex = /^(forward\.(?:t|j)s)$/;
-const findForward = (filesAndFolders: string[]) =>
-  filesAndFolders.find((fileOrfolder) => forwardRegex.test(fileOrfolder));
+const findForward = makeFind(forwardRegex);
+
+const rewriteRegex = /^(rewrite\.(?:t|j)s)$/;
+const findRewrite = makeFind(rewriteRegex);
+
+const redirectRegex = /^(redirect\.(?:t|j)s)$/;
+const findRedirect = makeFind(redirectRegex);
 
 const collectForwards = async (dir: string, filesAndFolders: string[]) => {
   const forwardFile = findForward(filesAndFolders);
@@ -124,7 +143,6 @@ const collectLayout = async (
           .join("/") + "/";
   const layoutPage = findPage(filesAndFolders);
   const layoutMiddleware = findMiddleware(filesAndFolders);
-  const layoutForward = findForward(filesAndFolders);
   const layout: SegmentLayout = {
     location: dir,
     internalPath:
@@ -149,6 +167,8 @@ const collectLayout = async (
     hash,
     dynamic,
     forward,
+    rewrite: !!findRewrite(filesAndFolders),
+    redirect: !!findRedirect(filesAndFolders),
     page: !!layoutPage,
     middleware: !!layoutMiddleware,
     children: await collectChildren(
@@ -194,7 +214,8 @@ const collectModuleExports = async (path: string) => {
 
 const getPages = (layout: SegmentLayout): SegmentLayout[] => {
   const result: SegmentLayout[] = [];
-  if (layout.page) result.push(layout);
+  // pages, redirects and rewrites are considered endpoints
+  if (layout.page || layout.redirect || layout.rewrite) result.push(layout);
   for (const child of Object.values(layout.children)) {
     result.push(...getPages(child));
   }
@@ -345,12 +366,20 @@ const flattenMergedRoute = ([current, next, forward]: MergedRoute):
 
 const traverseRoute = <T>(
   [current, type, next, forward]: FlattenedRoute,
-  onSegment: (segment: SegmentLayout, type: 0 | string) => T
+  onSegment: (segment: SegmentLayout, type: 0 | 1 | string) => T
 ): LayoutType<T> => {
   return [
     onSegment(current, type),
-    next instanceof Array ? traverseRoute(next, onSegment) : 1,
-    forward instanceof Array ? traverseRoute(forward, onSegment) : 1,
+    next instanceof Array
+      ? traverseRoute(next, onSegment)
+      : next
+      ? [onSegment(next, 1), , ,]
+      : undefined,
+    forward instanceof Array
+      ? traverseRoute(forward, onSegment)
+      : forward
+      ? [onSegment(forward, 1), , ,]
+      : undefined,
   ];
 };
 
@@ -371,13 +400,21 @@ const generate = async () => {
     const mergedRoutes = mergeLayouts(resolvedLayouts);
     return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
   });
-  const imported: Array<[string, "forward" | "middleware"]> = [];
+  const imports: Imports = {
+    forward: new Set(),
+    middleware: new Set(),
+    redirect: new Set(),
+    rewrite: new Set(),
+  };
   routes.forEach(([, route]) => {
     traverseRoute(route, (segment, type) => {
       if (type === 0) {
-        imported.push([segment.location, "middleware"]);
+        imports.middleware.add(segment.location);
+      } else if (type === 1) {
+        if (segment.redirect) imports.redirect.add(segment.location);
+        if (segment.rewrite) imports.rewrite.add(segment.location);
       } else {
-        imported.push([segment.location, "forward"]);
+        imports.forward.add(segment.location);
       }
     });
   });
@@ -398,7 +435,7 @@ const generate = async () => {
       publicFiles: await publicPromise,
       segmentAmount,
       hooks: await hooksPromise,
-      imports: imported,
+      imports,
     }),
     { parser: "babel-ts" }
   );
@@ -429,7 +466,7 @@ const readHooksConfig = async () => {
       ...defaultHooksConfig,
     };
   if (matches.length > 1)
-    console.warn("Multiple middleware configs found, using:", matches[0]);
+    warn("Multiple middleware configs found, using:", matches[0]);
   const exports = await collectModuleExports(matches[0]);
   const config = {
     ...defaultHooksConfig,
@@ -499,6 +536,26 @@ const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
       then: ejectPage(page, appliedParams),
     };
   }
+
+  if (page.rewrite)
+    return {
+      type: BranchTypes.REWRITE,
+      location: page.location,
+      internalPath: page.internalPath,
+      fallback:
+        page.redirect || page.page
+          ? ejectPage({ ...page, rewrite: false }, appliedParams)
+          : undefined,
+    };
+  if (page.redirect)
+    return {
+      type: BranchTypes.REDIRECT,
+      location: page.location,
+      internalPath: page.internalPath,
+      fallback: page.page
+        ? ejectPage({ ...page, redirect: false }, appliedParams)
+        : undefined,
+    };
   return {
     type: BranchTypes.NEXT,
     internalPath: page.internalPath.includes("/:")
@@ -578,31 +635,55 @@ class CancelToken {
 
 export const build = async (token?: CancelToken) => {
   const code = await generate();
-  if (token && token.cancelled) return;
+  if (token && token.cancelled) return true;
   await outputFile(join(process.cwd(), "middleware.ts"), code);
-  console.info("Successfuly built middleware.");
+  return false;
+};
+
+export const prod = async () => {
+  try {
+    const start = Date.now();
+    await build();
+    success(
+      `generated middleware.ts in ${
+        Date.now() - start
+      }ms. watching for changes...`
+    );
+  } catch (e) {
+    error("error while generating middleware:", e);
+    process.exit(1);
+  }
 };
 
 export const dev = async () => {
   const buildWithCatch = async (token?: CancelToken) => {
     try {
-      await build(token);
+      const start = Date.now();
+      const cancelled = await build(token);
+      if (!cancelled)
+        event(
+          `generated middleware.ts in ${
+            Date.now() - start
+          }ms. watching for changes...`
+        );
     } catch (e) {
-      console.error("Error while building middleware:", e);
+      error("error while generating middleware:", e);
     }
   };
-  await buildWithCatch();
-  console.info("waiting for middleware changes...");
-  let cancelToken: CancelToken;
-  const runBuild = (type: string) => (file: string) => {
-    console.info(`${type} ${file}`);
-    if (cancelToken) cancelToken.cancel();
+  let cancelToken: CancelToken = new CancelToken();
+  let buildPromise: Promise<void> = buildWithCatch(cancelToken);
+  const runBuild = (type: string) => async (file: string) => {
+    info(`${type} ${file}, rebuilding...`);
+    cancelToken.cancel();
+    await buildPromise;
     cancelToken = new CancelToken();
-    buildWithCatch(cancelToken);
+    buildPromise = buildWithCatch(cancelToken);
   };
 
   watch("app/**/middleware.{ts,js}", { ignoreInitial: true })
     .add("app/**/page.{tsx,js,jsx}")
+    .add("app/**/rewrite.{ts,js}")
+    .add("app/**/redirect.{ts,js}")
     .add("public/**/*")
     .on("add", runBuild("added"))
     .on("unlink", runBuild("deleted"));

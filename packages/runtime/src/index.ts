@@ -12,4 +12,6 @@ export type {
   RedirectHook,
   ResponseHook,
   RewriteHook,
+  RewriteHandler,
+  RedirectHandler,
 } from "./util/types";

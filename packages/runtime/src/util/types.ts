@@ -59,7 +59,7 @@ export type RedirectHook = GenericHook<[destination: string, status?: number]>;
 
 export type JsonHook = GenericHook<[data: unknown]>;
 
-export type ResponseHook = (res: NextResponse) => OptionalPromise<void>;
+export type ResponseHook = (res: Response) => OptionalPromise<void>;
 
 export type MiddleWareHandlerResult =
   | { redirect: string | URL | NextURL; status?: number }
@@ -67,12 +67,31 @@ export type MiddleWareHandlerResult =
   | { json: unknown }
   | void;
 
-export type MiddlewareHandler<Param extends DefaultParam = DefaultParam> = (
+type BaseHandler<Param extends DefaultParam, R> = (
   req: NextMiddlewareRequest<Param>,
   res: NextMiddlewareResponse
-) => MiddleWareHandlerResult | Promise<MiddleWareHandlerResult>;
+) => OptionalPromise<R>;
 
-export type Forwarder<Param extends DefaultParam = DefaultParam> = (
-  req: NextMiddlewareRequest<Param>,
-  res: NextMiddlewareResponse
-) => OptionalPromise<string | void>;
+export type MiddlewareHandler<Param extends DefaultParam = DefaultParam> =
+  BaseHandler<Param, MiddleWareHandlerResult>;
+
+export type Forwarder<Param extends DefaultParam = DefaultParam> = BaseHandler<
+  Param,
+  string | void
+>;
+
+export type RewriteHandler<Param extends DefaultParam = DefaultParam> =
+  BaseHandler<Param, string | URL | NextURL | void>;
+
+export type RedirectHandler<Param extends DefaultParam = DefaultParam> =
+  BaseHandler<
+    Param,
+    | string
+    | URL
+    | NextURL
+    | {
+        destination: string | URL | NextURL;
+        status?: number;
+      }
+    | void
+  >;
