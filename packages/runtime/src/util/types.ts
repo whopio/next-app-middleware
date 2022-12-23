@@ -95,3 +95,5 @@ export type RedirectHandler<Param extends DefaultParam = DefaultParam> =
       }
     | void
   >;
+
+export type RuntimeNext = ((params: ParamType) => string) | true | undefined;

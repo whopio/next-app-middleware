@@ -9,9 +9,11 @@ export type {
   NextMiddlewareResponse,
   Params,
   ParamsHook,
+  ParamType,
   RedirectHook,
   ResponseHook,
   RewriteHook,
   RewriteHandler,
   RedirectHandler,
+  RuntimeNext,
 } from "./util/types";
