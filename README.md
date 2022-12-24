@@ -126,14 +126,26 @@ export const response: ResponseHook = (response) => {
 };
 ```
 
-## soon
+#### error
 
-### catch all segments
+Invoked when an error happens during matching or handler execution:
 
-These are a pain to compile static mathers for.
+```ts
+export const error: ErrorHook = (req, res, err) => {
+  console.error(err);
+  // the error will be re-thrown if this hook does not return a response,
+  // causing a 500 response by default, if a response is returned, request
+  // processing continues
+  return new NextResponse(null, { status: 500 });
+};
+```
 
-## after
+## todo
 
-### new file convention: external.{ts,js}
+- Allow for middleware.js outputs for projects that dont use typescript (probably just going to run it through swc and call it a day)
+
+## ideas
+
+### file convention: external.{ts,js}
 
 Once this is placed in a directory all requests starting with that path will be sent to the return value of the default export if it is a function, if its a string that value will be used. This will make it so the final middleware will have to match anything that starts with that path. As a convenience feature middleware will also match the origin of requests to public files and rewrite them as well if the origin matches the external app.

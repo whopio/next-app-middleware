@@ -91,9 +91,11 @@ const ejectPage = (
     };
   return {
     type: BranchTypes.NEXT,
-    internalPath: page.internalPath.includes("/:")
-      ? page.internalPath
-      : undefined,
+    internalPath:
+      page.internalPath.includes("/:") ||
+      /\/(\*[^\/]*)\/$/.test(page.internalPath)
+        ? page.internalPath
+        : undefined,
   };
 };
 
