@@ -17,7 +17,11 @@ This next.js extension allows for middleware to live in the app directory. The e
 ```js
 const { withMiddleware } = require("next-app-middleware");
 
-const nextConfig = {};
+const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
+};
 
 module.exports = withMiddleware(nextConfig);
 ```
