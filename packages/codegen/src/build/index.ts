@@ -7,6 +7,7 @@ import { join } from "path";
 import { format } from "prettier";
 import { FlattenedRoute } from "../types";
 import CancelToken from "../util/CancelToken";
+import logger from "../util/log";
 import collectLayout from "./collect-layout";
 import collectPublicFiles from "./collect-public";
 import { ejectMatcherMap, toMatcherMap } from "./eject";
@@ -14,10 +15,20 @@ import getPages, { getSimilarPages } from "./get-pages";
 import { mergeLayouts, resolveLayouts, validateLayout } from "./layout";
 import readHooksConfig from "./read-config";
 import { flattenMergedRoute, traverseRoute } from "./route";
+import { transform } from "@swc/core";
 
-const { outputFile } = fse;
+const { outputFile, stat } = fse;
 
-const generate = async () => {
+const isTypescript = async () => {
+  try {
+    const stats = await stat(join(process.cwd(), "tsconfig.json"));
+    return stats.isFile();
+  } catch {
+    return false;
+  }
+};
+
+const generate = async (isTypescriptPromise: Promise<boolean>) => {
   const hooksPromise = readHooksConfig();
   const publicPromise = collectPublicFiles();
   const layout = await collectLayout();
@@ -53,21 +64,45 @@ const generate = async () => {
     });
   });
   const ejectedBranches = ejectMatcherMap(toMatcherMap(routes));
-  return format(
-    renderRouter({
-      branches: ejectedBranches,
-      publicFiles: await publicPromise,
-      segmentAmount,
-      hooks: await hooksPromise,
-      imports,
-    }),
-    { parser: "babel-ts" }
-  );
+  const ejectedRouter = renderRouter({
+    branches: ejectedBranches,
+    publicFiles: await publicPromise,
+    segmentAmount,
+    hooks: await hooksPromise,
+    imports,
+  });
+  if (await isTypescriptPromise) {
+    logger.info("Using typescript");
+    return format(ejectedRouter, { parser: "babel-ts" });
+  } else {
+    logger.info("Using javascript");
+    const { code } = await transform(ejectedRouter, {
+      jsc: {
+        parser: {
+          syntax: "typescript",
+          dynamicImport: true,
+        },
+        target: "es2022",
+      },
+      module: {
+        type: "es6",
+      },
+      sourceMaps: false,
+    });
+    return format(code, { parser: "babel" });
+  }
 };
 
 export const build = async (token?: CancelToken) => {
-  const code = await generate();
+  const isTypescriptPromise = isTypescript();
+  const code = await generate(isTypescriptPromise);
   if (token && token.cancelled) return true;
-  await outputFile(join(process.cwd(), "middleware.ts"), code);
+  await outputFile(
+    join(
+      process.cwd(),
+      `middleware.${(await isTypescriptPromise) ? "ts" : "js"}`
+    ),
+    code
+  );
   return false;
 };
