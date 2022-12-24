@@ -9,7 +9,7 @@ const buildWithCatch = async (token?: CancelToken) => {
     const cancelled = await build(token);
     if (!cancelled)
       logger.event(
-        `generated middleware.ts in ${
+        `generated middleware in ${
           Date.now() - start
         }ms. watching for changes...`
       );

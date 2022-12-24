@@ -72,10 +72,10 @@ const generate = async (isTypescriptPromise: Promise<boolean>) => {
     imports,
   });
   if (await isTypescriptPromise) {
-    logger.info("Using typescript");
+    logger.info("using typescript");
     return format(ejectedRouter, { parser: "babel-ts" });
   } else {
-    logger.info("Using javascript");
+    logger.info("using javascript");
     const { code } = await transform(ejectedRouter, {
       jsc: {
         parser: {
