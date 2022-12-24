@@ -14,11 +14,18 @@ export type ParamKeys<Path> = Path extends `${infer Component}/${infer Rest}`
   ? ParamKey<Component> | ParamKeys<Rest>
   : ParamKey<Path>;
 
-export type Params<Path> = Record<ParamKeys<Path>, string>;
+type CatchAllKey<Component> = Component extends `*${infer Name}` ? Name : never;
 
-export type ParamType = Record<string, string>;
+export type CatchAllKeys<Path> = Path extends `${infer Component}/${infer Rest}`
+  ? CatchAllKey<Component> | CatchAllKeys<Rest>
+  : CatchAllKey<Path>;
 
-type DefaultParam = Record<string, string | undefined>;
+export type Params<Path> = Record<ParamKeys<Path>, string> &
+  Record<CatchAllKeys<Path>, string[]>;
+
+export type ParamType = Record<string, string | string[]>;
+
+type DefaultParam = Record<string, string | string[] | undefined>;
 
 export type NextMiddlewareRequest<Param extends DefaultParam = DefaultParam> = {
   readonly url: NextURL;
@@ -47,17 +54,19 @@ export type GenericHook<ExtraArgs extends any[] = []> = (
   req: NextMiddlewareRequest,
   res: NextMiddlewareResponse,
   ...extra: ExtraArgs
-) => OptionalPromise<NextResponse | undefined>;
+) => OptionalPromise<NextResponse | void>;
 
 export type ParamsHook = (
   params: ParamType
-) => OptionalPromise<ParamType | undefined>;
+) => OptionalPromise<ParamType | void>;
 
 export type RewriteHook = GenericHook<[destination: string]>;
 
 export type RedirectHook = GenericHook<[destination: string, status?: number]>;
 
 export type JsonHook = GenericHook<[data: unknown]>;
+
+export type ErrorHook = GenericHook<[error: Error]>;
 
 export type ResponseHook = (res: Response) => OptionalPromise<void>;
 

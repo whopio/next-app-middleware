@@ -1,28 +1,38 @@
 import {
   Branch,
   BranchTypes,
+  PathSegmentSwitch,
 } from "@next-app-middleware/runtime/dist/router/ejected";
 import { FlattenedRoute, SegmentLayout } from "../types";
 
 type MatcherMap = Map<string, FlattenedRoute | MatcherMap>;
 
 export const toMatcherMap = (
-  similarRoutes: (readonly [string, FlattenedRoute])[]
+  endpoints: (readonly [string, FlattenedRoute])[]
 ) => {
   const map: MatcherMap = new Map();
-  for (const [externalPath, route] of similarRoutes) {
+  for (const [pathHash, route] of endpoints) {
     let currentMap = map;
-    const segments = externalPath.slice(1, -1).split("/");
+    const segments = pathHash.slice(1).split("/");
+    let isCatchAll = false;
     for (const segment of segments.slice(0, -1)) {
+      if (segment === "*") {
+        isCatchAll = true;
+        break;
+      }
       if (!currentMap.has(segment)) currentMap.set(segment, new Map());
       currentMap = currentMap.get(segment) as MatcherMap;
     }
-    currentMap.set(segments[segments.length - 1], route);
+    currentMap.set(isCatchAll ? "*" : "", route);
   }
   return map;
 };
 
-const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
+const ejectPage = (
+  page: SegmentLayout,
+  appliedParams: Set<string>,
+  catchAllApplied: boolean
+): Branch => {
   const segments = page.externalPath.split("/");
   const [segment] = segments.filter(
     (segment) => segment.startsWith(":") && !appliedParams.has(segment.slice(1))
@@ -36,7 +46,19 @@ const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
       type: BranchTypes.DYNAMIC,
       name,
       index,
-      then: ejectPage(page, appliedParams),
+      then: ejectPage(page, appliedParams, catchAllApplied),
+    };
+  }
+
+  const lastSegment = segments[segments.length - 2];
+  if (lastSegment.startsWith("*") && !catchAllApplied) {
+    const name = lastSegment.slice(1);
+    const index = segments.indexOf(lastSegment) - 1;
+    return {
+      type: BranchTypes.CATCH_ALL,
+      name,
+      index,
+      then: ejectPage(page, appliedParams, true),
     };
   }
 
@@ -47,7 +69,11 @@ const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
       internalPath: page.internalPath,
       fallback:
         page.redirect || page.page
-          ? ejectPage({ ...page, rewrite: false }, appliedParams)
+          ? ejectPage(
+              { ...page, rewrite: false },
+              appliedParams,
+              catchAllApplied
+            )
           : undefined,
     };
   if (page.redirect)
@@ -56,20 +82,27 @@ const ejectPage = (page: SegmentLayout, appliedParams: Set<string>): Branch => {
       location: page.location,
       internalPath: page.internalPath,
       fallback: page.page
-        ? ejectPage({ ...page, redirect: false }, appliedParams)
+        ? ejectPage(
+            { ...page, redirect: false },
+            appliedParams,
+            catchAllApplied
+          )
         : undefined,
     };
   return {
     type: BranchTypes.NEXT,
-    internalPath: page.internalPath.includes("/:")
-      ? page.internalPath
-      : undefined,
+    internalPath:
+      page.internalPath.includes("/:") ||
+      /\/(\*[^\/]*)\/$/.test(page.internalPath)
+        ? page.internalPath
+        : undefined,
   };
 };
 
 const ejectRoute = (
   [currentSegment, type, next, forward]: FlattenedRoute,
-  appliedParams = new Set<string>()
+  appliedParams = new Set<string>(),
+  catchAllApplied = false
 ): Branch => {
   const segments = currentSegment.externalPath.split("/");
   const [segment] = segments.filter(
@@ -84,9 +117,29 @@ const ejectRoute = (
       type: BranchTypes.DYNAMIC,
       name,
       index,
-      then: ejectRoute([currentSegment, type, next, forward], appliedParams),
+      then: ejectRoute(
+        [currentSegment, type, next, forward],
+        appliedParams,
+        catchAllApplied
+      ),
     };
   }
+  const lastSegment = segments[segments.length - 2];
+  if (lastSegment.startsWith("*") && !catchAllApplied) {
+    const name = lastSegment.slice(1);
+    const index = segments.indexOf(lastSegment) - 1;
+    return {
+      type: BranchTypes.CATCH_ALL,
+      name,
+      index,
+      then: ejectRoute(
+        [currentSegment, type, next, forward],
+        appliedParams,
+        true
+      ),
+    };
+  }
+
   if (typeof type === "number") {
     return {
       type: BranchTypes.MIDDLEWARE,
@@ -94,9 +147,9 @@ const ejectRoute = (
       location: currentSegment.location,
       then:
         next instanceof Array
-          ? ejectRoute(next, appliedParams)
+          ? ejectRoute(next, appliedParams, catchAllApplied)
           : next
-          ? ejectPage(next, appliedParams)
+          ? ejectPage(next, appliedParams, catchAllApplied)
           : {
               type: BranchTypes.NOT_FOUND,
             },
@@ -109,17 +162,17 @@ const ejectRoute = (
       location: currentSegment.location,
       then:
         next instanceof Array
-          ? ejectRoute(next, appliedParams)
+          ? ejectRoute(next, appliedParams, catchAllApplied)
           : next
-          ? ejectPage(next, appliedParams)
+          ? ejectPage(next, appliedParams, catchAllApplied)
           : {
               type: BranchTypes.NOT_FOUND,
             },
       forward:
         forward instanceof Array
-          ? ejectRoute(forward, appliedParams)
+          ? ejectRoute(forward, appliedParams, catchAllApplied)
           : forward
-          ? ejectPage(forward, appliedParams)
+          ? ejectPage(forward, appliedParams, catchAllApplied)
           : {
               type: BranchTypes.NOT_FOUND,
             },
@@ -127,28 +180,70 @@ const ejectRoute = (
   }
 };
 
+const specialCases = ["", ":", "*"];
+
+const getMatcherMapImfo = (map: MatcherMap) => ({
+  endpoint: map.get("") as FlattenedRoute | undefined,
+  dynamic: map.get(":"),
+  catchAll: map.get("*") as FlattenedRoute | undefined,
+  static: Array.from(map.entries()).filter(
+    ([segment]) => !specialCases.includes(segment)
+  ),
+});
+
 export const ejectMatcherMap = (
-  map: FlattenedRoute | MatcherMap,
+  mapOrRoute: FlattenedRoute | MatcherMap,
   depth = 0
 ): Branch => {
-  if (map instanceof Map) {
-    const defaultCase = map.get(":");
-    return {
-      type: BranchTypes.SWITCH,
-      index: depth,
-      cases: Array.from(map.entries())
-        .filter(([segment]) => segment !== ":")
-        .map(([segment, entry]) => {
-          return {
-            match: segment,
-            then: ejectMatcherMap(entry, depth + 1),
-          };
-        }),
-      defaultCase: defaultCase
-        ? ejectMatcherMap(defaultCase, depth + 1)
-        : {
-            type: BranchTypes.NOT_FOUND,
-          },
-    };
-  } else return ejectRoute(map);
+  if (mapOrRoute instanceof Map) {
+    const map = getMatcherMapImfo(mapOrRoute);
+    const cases: PathSegmentSwitch["cases"] = [
+      {
+        match: "",
+        then: map.endpoint
+          ? ejectRoute(map.endpoint)
+          : {
+              type: BranchTypes.NOT_FOUND,
+            },
+      },
+      ...map.static.map(([segment, entry]) => {
+        return {
+          match: segment,
+          then: ejectMatcherMap(entry, depth + 1),
+        };
+      }),
+    ];
+    if (map.dynamic) {
+      if (map.catchAll)
+        return {
+          type: BranchTypes.SWITCH,
+          index: depth,
+          cases,
+          defaultCase: ejectMatcherMap(map.dynamic, depth + 1),
+          catchAll: ejectRoute(map.catchAll),
+        };
+      else
+        return {
+          type: BranchTypes.SWITCH,
+          index: depth,
+          cases,
+          defaultCase: ejectMatcherMap(map.dynamic, depth + 1),
+        };
+    } else if (map.catchAll)
+      return {
+        type: BranchTypes.SWITCH,
+        index: depth,
+        cases,
+        defaultCase: ejectRoute(map.catchAll),
+      };
+    else
+      return {
+        type: BranchTypes.SWITCH,
+        index: depth,
+        cases,
+        defaultCase: { type: BranchTypes.NOT_FOUND },
+      };
+  } else {
+    return ejectRoute(mapOrRoute);
+  }
 };

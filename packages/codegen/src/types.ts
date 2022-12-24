@@ -17,6 +17,7 @@ export type SegmentLayout = {
   externalPath: string;
   hash: string;
   dynamic?: string;
+  catchAll: boolean;
   children: Record<string, SegmentLayout>;
   parent?: () => SegmentLayout;
 };

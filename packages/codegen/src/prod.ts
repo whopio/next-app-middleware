@@ -5,11 +5,7 @@ const prod = async () => {
   try {
     const start = Date.now();
     await build();
-    logger.success(
-      `generated middleware.ts in ${
-        Date.now() - start
-      }ms. watching for changes...`
-    );
+    logger.success(`generated middleware.ts in ${Date.now() - start}ms`);
   } catch (e) {
     logger.error("error while generating middleware:", e);
     process.exit(1);

@@ -52,17 +52,7 @@ const generate = async () => {
       }
     });
   });
-  const bySegmentAmount: typeof routes[] = [];
-  routes.forEach((route) => {
-    const segmentAmount = route[0].split("/").length - 2;
-    if (!bySegmentAmount[segmentAmount])
-      bySegmentAmount[segmentAmount] = [route];
-    else bySegmentAmount[segmentAmount].push(route);
-  });
-  const branches = bySegmentAmount.map((similarRoutes) =>
-    toMatcherMap(similarRoutes)
-  );
-  const ejectedBranches = branches.map((map) => ejectMatcherMap(map));
+  const ejectedBranches = ejectMatcherMap(toMatcherMap(routes));
   return format(
     renderRouter({
       branches: ejectedBranches,

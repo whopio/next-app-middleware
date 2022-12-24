@@ -1,6 +1,10 @@
-export const dynamicSegmentRegex = /\[(.*)\]/;
+export const dynamicSegmentRegex = /\[((?!\.\.\.).*)\]/;
 export const isDynamicSegment = (segment: string) =>
   dynamicSegmentRegex.test(segment);
+
+export const catchAllSegmentRegex = /\[\.\.\.(.*)\]/;
+export const isCatchAllSegment = (segment: string) =>
+  catchAllSegmentRegex.test(segment);
 
 export const routeGroupSegmentRegex = /\((.*)\)/;
 export const isRouteGroupSegment = (segment: string) =>

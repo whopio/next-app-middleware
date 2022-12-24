@@ -7,6 +7,7 @@ export enum BranchTypes {
   DYNAMIC,
   REWRITE,
   REDIRECT,
+  CATCH_ALL,
 }
 
 export type EjectedMiddleware = {
@@ -34,6 +35,7 @@ export type PathSegmentSwitch = {
   type: BranchTypes.SWITCH;
   cases: PathSegmentSwitchCase[];
   defaultCase: Branch;
+  catchAll?: Branch;
   index: number;
 };
 
@@ -67,6 +69,13 @@ export type DynamicSegment = {
   then: Branch;
 };
 
+export type CatchAllSegment = {
+  type: BranchTypes.CATCH_ALL;
+  name: string;
+  index: number;
+  then: Branch;
+};
+
 export type Branch =
   | EjectedMiddleware
   | EjectedForward
@@ -75,7 +84,8 @@ export type Branch =
   | EjectedNotFoundResponse
   | EjectedRedirect
   | EjectedRewrite
-  | DynamicSegment;
+  | DynamicSegment
+  | CatchAllSegment;
 
 export type RouterHooksConfig = {
   notFound: boolean;
@@ -84,6 +94,7 @@ export type RouterHooksConfig = {
   json: boolean;
   params: boolean;
   response: boolean;
+  error: boolean;
 };
 
 export type Imports = {
@@ -97,6 +108,6 @@ export type EjectedRouter = {
   segmentAmount: number;
   publicFiles: string[];
   hooks: RouterHooksConfig;
-  branches: Branch[];
+  branches: Branch;
   imports: Imports;
 };

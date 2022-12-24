@@ -1,4 +1,5 @@
 export type {
+  ErrorHook,
   Forwarder,
   GenericHook,
   JsonHook,
