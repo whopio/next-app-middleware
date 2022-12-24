@@ -24,7 +24,7 @@ importers:
       eslint: 8.29.0
       eslint-config-next: 13.1.1
       next: 13.1.1
-      next-app-middleware: workspace:^1.0.0
+      next-app-middleware: workspace:0.0.0
       react: 18.2.0
       react-dom: 18.2.0
       typescript: 4.9.3
@@ -47,7 +47,7 @@ importers:
       eslint: 8.30.0
       eslint-config-next: 13.1.1
       next: 13.1.1
-      next-app-middleware: workspace:^1.0.0
+      next-app-middleware: workspace:0.0.0
       react: 18.2.0
       react-dom: 18.2.0
     dependencies:
@@ -62,7 +62,7 @@ importers:
 
   packages/codegen:
     specifiers:
-      '@next-app-middleware/runtime': workspace:^1.0.0
+      '@next-app-middleware/runtime': workspace:0.0.0
       '@swc/core': ^1.3.21
       '@types/fs-extra': ^9.0.13
       '@types/glob': ^8.0.0
@@ -110,13 +110,13 @@ importers:
 
   packages/middleware-next:
     specifiers:
-      '@next-app-middleware/codegen': workspace:^1.0.0
-      '@next-app-middleware/runtime': workspace:^1.0.0
+      '@next-app-middleware/codegen': workspace:0.0.0
+      '@next-app-middleware/runtime': workspace:0.0.0
       '@swc/cli': ^0.1.57
       '@swc/core': ^1.3.21
       concurrently: ^7.6.0
       next: 13.1.1
-      tsconfig: workspace:^0.0.0
+      tsconfig: workspace:0.0.0
       typescript: ^4.9.3
     dependencies:
       '@next-app-middleware/codegen': link:../codegen
