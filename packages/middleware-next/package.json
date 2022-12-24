@@ -1,6 +1,6 @@
 {
   "name": "next-app-middleware",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,14 +19,14 @@
     "@swc/core": "^1.3.21",
     "concurrently": "^7.6.0",
     "next": "13.0.6",
-    "tsconfig": "workspace:^0.0.0",
+    "tsconfig": "workspace:0.0.0",
     "typescript": "^4.9.3"
   },
   "peerDependencies": {
     "next": "13.0.6"
   },
   "dependencies": {
-    "@next-app-middleware/codegen": "workspace:^1.0.0",
-    "@next-app-middleware/runtime": "workspace:^1.0.0"
+    "@next-app-middleware/codegen": "workspace:0.0.0",
+    "@next-app-middleware/runtime": "workspace:0.0.0"
   }
 }

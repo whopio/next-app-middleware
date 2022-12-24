@@ -1,6 +1,6 @@
 {
   "name": "@next-app-middleware/basic-example",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --port 3003",
@@ -20,6 +20,6 @@
     "typescript": "4.9.3"
   },
   "devDependencies": {
-    "next-app-middleware": "workspace:^1.0.0"
+    "next-app-middleware": "workspace:0.0.0"
   }
 }

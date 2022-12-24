@@ -1,6 +1,6 @@
 {
   "name": "@baked-dev/next-app-middleware",
-  "version": "0.0.0",
+  "version": "0.0.0-canary.0",
   "private": true,
   "workspaces": [
     "apps/*",
