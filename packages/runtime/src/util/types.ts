@@ -23,9 +23,9 @@ export type CatchAllKeys<Path> = Path extends `${infer Component}/${infer Rest}`
 export type Params<Path> = Record<ParamKeys<Path>, string> &
   Record<CatchAllKeys<Path>, string[]>;
 
-export type ParamType = Record<string, string>;
+export type ParamType = Record<string, string | string[]>;
 
-type DefaultParam = Record<string, string | undefined>;
+type DefaultParam = Record<string, string | string[] | undefined>;
 
 export type NextMiddlewareRequest<Param extends DefaultParam = DefaultParam> = {
   readonly url: NextURL;
@@ -54,11 +54,11 @@ export type GenericHook<ExtraArgs extends any[] = []> = (
   req: NextMiddlewareRequest,
   res: NextMiddlewareResponse,
   ...extra: ExtraArgs
-) => OptionalPromise<NextResponse | undefined>;
+) => OptionalPromise<NextResponse | void>;
 
 export type ParamsHook = (
   params: ParamType
-) => OptionalPromise<ParamType | undefined>;
+) => OptionalPromise<ParamType | void>;
 
 export type RewriteHook = GenericHook<[destination: string]>;
 

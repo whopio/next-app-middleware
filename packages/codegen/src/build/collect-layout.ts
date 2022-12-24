@@ -3,12 +3,14 @@ import { join } from "path";
 import { SegmentLayout } from "../types";
 import collectModuleExports from "./collect-exports";
 import {
+  catchAllSegmentRegex,
   dynamicSegmentRegex,
   findForward,
   findMiddleware,
   findPage,
   findRedirect,
   findRewrite,
+  isCatchAllSegment,
   isRouteGroupSegment,
   routeGroupSegmentRegex,
 } from "./regex";
@@ -38,6 +40,14 @@ const collectChildren = async (
           children[fileOrFolder] = await collectLayout(
             join(dir, fileOrFolder),
             externalPath,
+            forward,
+            getParent
+          );
+        } else if (isCatchAllSegment(fileOrFolder)) {
+          const match = catchAllSegmentRegex.exec(fileOrFolder);
+          children[fileOrFolder] = await collectLayout(
+            join(dir, fileOrFolder),
+            join(externalPath, `*${match![1]}`),
             forward,
             getParent
           );
@@ -86,12 +96,19 @@ const collectLayout = async (
   const forward = isRouteGroupSegment(currentSegment)
     ? parentForward
     : await collectForwards(dir, filesAndFolders);
+  const catchAll = isCatchAllSegment(currentSegment);
   const hash =
     externalPath === "/"
       ? "/"
       : externalPath
           .split("/")
-          .map((segment) => (segment.startsWith(":") ? ":" : segment))
+          .map((segment) =>
+            segment.startsWith(":")
+              ? ":"
+              : segment.startsWith("*")
+              ? "*"
+              : segment
+          )
           .join("/") + "/";
   const layoutPage = findPage(filesAndFolders);
   const layoutMiddleware = findMiddleware(filesAndFolders);
@@ -107,8 +124,11 @@ const collectLayout = async (
             .map((segment) => {
               if (routeGroupSegmentRegex.test(segment)) return false;
               const match = dynamicSegmentRegex.exec(segment);
-              if (!match) return segment;
-              else return `:${match[1]}`;
+              if (!match) {
+                const catchAllMatch = catchAllSegmentRegex.exec(segment);
+                if (!catchAllMatch) return segment;
+                return `*${catchAllMatch[1]}`;
+              } else return `:${match[1]}`;
             })
             .filter(Boolean)
             .join("/") +
@@ -118,6 +138,7 @@ const collectLayout = async (
     group: isRouteGroupSegment(currentSegment),
     hash,
     dynamic,
+    catchAll,
     forward,
     rewrite: !!findRewrite(filesAndFolders),
     redirect: !!findRedirect(filesAndFolders),

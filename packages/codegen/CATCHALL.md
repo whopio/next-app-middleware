@@ -171,10 +171,18 @@ switch (segments[0]) {
   case "test": {
     switch (segments[1]) {
       case "test": {
-        // /test/test/test1*/
-        const [,,...catchAll] = segments;
-        params.test1 = catchAll;
-        break;
+        switch (segments[2]) {
+          case "": {
+            notFound = true;
+            break;
+          }
+          default: {
+            // /test/test/test1*/
+            const [,,...catchAll] = segments;
+            params.test1 = catchAll;
+            break;
+          }
+        }
       }
       default: {
         notFound = true;

@@ -31,13 +31,13 @@ const renderBody = ({ hooks, branches }: EjectedRouter) =>
 export const middleware: NextMiddleware = async (nextRequest, ev) => {
   ${bodyHead}
   try {
-    ${renderBranches(branches)}
+    ${renderBranch(branches)}
   } catch (e) {
-    const error = e instance of Error ? e : new Error(\`Runtime Exception: \${e}\`);
+    const error = e instanceof Error ? e : new Error(\`Runtime Exception: \${e}\`);
     ${
       hooks.error
         ? `
-      response = await errorHook(req, res, error);
+      response = (await errorHook(req, res, error)) || undefined;
       if (!response) throw error;
     `
         : "throw error"

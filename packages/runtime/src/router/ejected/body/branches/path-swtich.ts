@@ -2,7 +2,12 @@ import { PathSegmentSwitch } from "../../types";
 import renderBranch from ".";
 import { renderSwitchStatement } from "./util";
 
-const renderPathSwitch = ({ index, defaultCase, cases }: PathSegmentSwitch) => {
+const renderPathSwitch = ({
+  index,
+  defaultCase,
+  cases,
+  catchAll,
+}: PathSegmentSwitch) => {
   return renderSwitchStatement({
     statement: `segments[${index}]`,
     cases: cases.map(({ match, then }) => {
@@ -19,8 +24,16 @@ const renderPathSwitch = ({ index, defaultCase, cases }: PathSegmentSwitch) => {
       ];
     }),
     default: `{
-      ${renderBranch(defaultCase)}
-      break;
+      ${renderBranch(defaultCase)}${
+      catchAll
+        ? `
+        if (notFound) {
+          notFound = false;
+          ${renderBranch(catchAll)}
+        }
+      `
+        : ""
+    }break;
     }`,
   });
 };

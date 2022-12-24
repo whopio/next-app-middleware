@@ -1,4 +1,5 @@
 import { Branch, BranchTypes } from "../../types";
+import renderCatchAll from "./catch-all";
 import renderDynamic from "./dynamic";
 import renderForward from "./forward";
 import renderMiddleware from "./middleware";
@@ -27,6 +28,9 @@ const renderBranch = (branch: Branch): string => {
     }
     case BranchTypes.DYNAMIC: {
       return renderDynamic(branch);
+    }
+    case BranchTypes.CATCH_ALL: {
+      return renderCatchAll(branch);
     }
     case BranchTypes.REWRITE: {
       return renderRewrite(branch);
