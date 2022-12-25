@@ -28,9 +28,26 @@ module.exports = withMiddleware(nextConfig);
 
 ## file conventions
 
-### app/\*\*/middleware.{ts,js}
+unless stated otherwise can be in any segment of the app directory.
 
-### app/\*\*/forward.{ts,js}
+### middleware.{ts,js}
+
+Middlewares will be called first when a request reaches its segment. A `MiddlewareHandlerResult` can be returned to intercept the request and stop the handler chain early. If the middleware returns `void` execution continues normally.
+
+```ts
+const middleware: MiddlewareHandler = (req, res) => {
+  let visitor_id = req.cookies.get("visitor_id")?.value;
+  if (!visitor_id) {
+    visitor_id = crypto.randomUUID();
+    res.cookies.set("visitor_id", visitor_id);
+  }
+  req.waitUntil(trackVisit(visitor_id, req));
+};
+
+export default middleware;
+```
+
+### forward.{ts,js}
 
 Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten.
 
@@ -48,17 +65,44 @@ export const locale = () => {
 
 In this example the forward.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
 
-### app/\*\*/rewrite.{ts,js}
+### rewrite.{ts,js}
 
 A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but is expected to return the final location the request will be routed to. Can not be used to rewrite the host.
 
-### app/\*\*/redirect.{ts,js}
+### redirect.{ts,js}
 
 Similar to rewrite.ts but results in a redirect instead of a rewrite
 
+```ts
+/**
+ * both rewrites and redirects can co-exist with pages and can
+ * dynamically choose to not perform any action and continue matching.
+ * Priority: rewrite > redirect > page
+ */
+
+// /app/rewrite.ts
+const rewrite: RewriteHandler = (req) => {
+  if (req.cookies.get("rewrite")?.value === "true") return "/rewritten";
+};
+
+// /app/page.tsx
+export default () => {
+  return <></>;
+};
+
+export default rewrite;
+
+/**
+ * since there is both a rewrite and a page in the same directory
+ * any request that does not have the `rewrite` cookie set to `true`
+ * will fall through to the page file while the ones that do have the
+ * cookie set will be rewritten to `/rewritten`
+ */
+```
+
 ### middleware.hooks.{ts,js}
 
-A collection of hooks that can be used to extend the middleware lifecylce
+A collection of hooks that can be used to extend the middleware lifecylce. Unlike the others, this file has to be in the root of your project instead of the app directory.
 
 #### notFound
 
@@ -143,10 +187,6 @@ export const error: ErrorHook = (req, res, err) => {
   return new NextResponse(null, { status: 500 });
 };
 ```
-
-## todo
-
-- Allow for middleware.js outputs for projects that dont use typescript (probably just going to run it through swc and call it a day)
 
 ## ideas
 
