@@ -69,7 +69,7 @@ In this example the forward.ts file declares a locale rewrite. This setup will r
 
 ### rewrite.{ts,js}
 
-A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but is expected to return the final location the request will be routed to. Can not be used to rewrite the host.
+A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but can optionally return the final location the request will be routed to.
 
 ### redirect.{ts,js}
 
