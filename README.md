@@ -99,6 +99,8 @@ export default rewrite;
  * any request that does not have the `rewrite` cookie set to `true`
  * will fall through to the page file while the ones that do have the
  * cookie set will be rewritten to `/rewritten`
+ * Note: if `void` is returned and no futher handler exist a `MatchingError`
+ * is thrown.
  */
 ```
 

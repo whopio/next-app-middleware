@@ -15,9 +15,17 @@ ${renderSwitchStatement({
     [
       ["'undefined'"],
       `{
-    ${renderBranch(fallback || { type: BranchTypes.NOT_FOUND })}
-    break;
-  }`,
+        ${
+          fallback
+            ? `${renderBranch(fallback)}
+        break;`
+            : `
+            throw new Error(
+              "MatchingError: rewrite at ${location} must return a value as neiter a redirect nor a page exists"
+            );
+        `.trim()
+        }
+      }`,
     ],
   ],
   default: `{
