@@ -19,8 +19,16 @@ ${renderSwitchStatement({
     [
       ["'undefined'"],
       `{
-    ${renderBranch(fallback || { type: BranchTypes.NOT_FOUND })}
-    break;
+    ${
+      fallback
+        ? `${renderBranch(fallback)}
+    break;`
+        : `
+        throw new Error(
+          "MatchingError: redirect at ${location} must return a value as no page exists"
+        );
+    `.trim()
+    }
   }`,
     ],
     [
