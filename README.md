@@ -56,11 +56,13 @@ Define internal path rewrites in this file. Export named functions that indicate
   - [locale]
     - page.tsx
   - forward.ts
+```
 
+```ts
 // app/forward.ts
 export const locale = () => {
   return "en";
-}
+};
 ```
 
 In this example the forward.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
