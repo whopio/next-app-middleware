@@ -1,6 +1,5 @@
-import { createHash } from "crypto";
 import renderBody from "./body";
-import renderFooter from "./footer";
+import footer from "./footer";
 import renderHead from "./head";
 import {
   Branch,
@@ -18,7 +17,6 @@ import {
 } from "./types";
 
 export { BranchTypes };
-
 export type {
   Branch,
   DynamicSegment,
@@ -39,5 +37,5 @@ ${renderHead(router)}
 
 ${renderBody(router)}
 
-${renderFooter(router.segmentAmount)}
+${footer}
 `;

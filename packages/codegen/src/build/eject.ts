@@ -62,6 +62,10 @@ const ejectPage = (
     };
   }
 
+  if (page.external)
+    return {
+      type: BranchTypes.EXTERNAL,
+    };
   if (page.rewrite)
     return {
       type: BranchTypes.REWRITE,
@@ -180,12 +184,15 @@ const ejectRoute = (
   }
 };
 
-const specialCases = ["", ":", "*"];
+const specialCases = ["", ":", "*", "\\"];
 
 const getMatcherMapImfo = (map: MatcherMap) => ({
   endpoint: map.get("") as FlattenedRoute | undefined,
   dynamic: map.get(":"),
   catchAll: map.get("*") as FlattenedRoute | undefined,
+  external: (map.get("\\") as MatcherMap | undefined)?.get("") as
+    | FlattenedRoute
+    | undefined,
   static: Array.from(map.entries()).filter(
     ([segment]) => !specialCases.includes(segment)
   ),
@@ -197,6 +204,9 @@ export const ejectMatcherMap = (
 ): Branch => {
   if (mapOrRoute instanceof Map) {
     const map = getMatcherMapImfo(mapOrRoute);
+    if (map.external) {
+      return ejectRoute(map.external);
+    }
     const cases: PathSegmentSwitch["cases"] = [
       {
         match: "",

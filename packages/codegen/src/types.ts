@@ -9,6 +9,7 @@ export type SegmentLayout = {
   rewrite: boolean;
   redirect: boolean;
   page: boolean;
+  external?: string;
   middleware: boolean;
   location: string;
   segment: string;

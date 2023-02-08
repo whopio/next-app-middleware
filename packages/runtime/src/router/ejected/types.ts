@@ -3,6 +3,7 @@ export enum BranchTypes {
   FORWARD,
   SWITCH,
   NEXT,
+  EXTERNAL,
   NOT_FOUND,
   DYNAMIC,
   REWRITE,
@@ -24,6 +25,10 @@ export type EjectedForward = {
   name: string;
   then?: Branch;
   forward?: Branch;
+};
+
+export type EjectedExternal = {
+  type: BranchTypes.EXTERNAL;
 };
 
 export type PathSegmentSwitchCase = {
@@ -84,6 +89,7 @@ export type Branch =
   | EjectedNotFoundResponse
   | EjectedRedirect
   | EjectedRewrite
+  | EjectedExternal
   | DynamicSegment
   | CatchAllSegment;
 
@@ -95,6 +101,7 @@ export type RouterHooksConfig = {
   params: boolean;
   response: boolean;
   error: boolean;
+  external: boolean;
 };
 
 export type Imports = {
@@ -105,7 +112,6 @@ export type Imports = {
 };
 
 export type EjectedRouter = {
-  segmentAmount: number;
   publicFiles: string[];
   hooks: RouterHooksConfig;
   branches: Branch;

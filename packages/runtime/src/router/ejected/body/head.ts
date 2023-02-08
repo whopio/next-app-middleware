@@ -1,7 +1,7 @@
 const bodyHead = `
 if (nextRequest.method !== "GET") return NextResponse.next();
 const incomingPathname = nextRequest.nextUrl.pathname;
-if (incomingPathname.indexOf("_next/", 1) === 0) return NextResponse.next();
+if (incomingPathname.indexOf("_next/", 1) === 1) return NextResponse.next();
 if (incomingPathname === "/api" || incomingPathname.indexOf("api/", 1) === 0)
   return NextResponse.next();
 if (publicFiles.has(incomingPathname))
@@ -55,6 +55,7 @@ let middleware_response: MiddleWareHandlerResult | undefined = undefined;
 let response: NextResponse | undefined = undefined;
 let next: RuntimeNext = undefined;
 let notFound: boolean = false;
+let external: boolean = false;
 `.trim();
 
 export default bodyHead;

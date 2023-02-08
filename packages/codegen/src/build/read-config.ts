@@ -14,6 +14,7 @@ const defaultHooksConfig: RouterHooksConfig = {
   params: false,
   response: false,
   error: false,
+  external: false,
 };
 
 const readHooksConfig = async () => {

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { URLPattern } from "next/server";
 import { useEffect, useState } from "react";
 import styles from "./page.module.css";
@@ -36,6 +37,7 @@ export default function Home() {
         {result?.split("\n").map((item, key) => (
           <span key={key}>{item}</span>
         ))}
+        <Link href="/userid">click</Link>
       </main>
     </div>
   );

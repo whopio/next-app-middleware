@@ -6,20 +6,23 @@ import watchAll from "./util/watch";
 const buildWithCatch = async (token?: CancelToken) => {
   try {
     const start = Date.now();
-    const cancelled = await build(token);
+    const { cancelled, rewrites } = await build(token);
     if (!cancelled)
       logger.event(
         `generated middleware in ${
           Date.now() - start
         }ms. watching for changes...`
       );
+    return rewrites!;
   } catch (e) {
     logger.error("error while generating middleware:", e);
+    return [];
   }
 };
 
 const watchConfig = {
   "add unlink": [
+    "app/**/external.{ts,js}",
     "app/**/middleware.{ts,js}",
     "app/**/page.{tsx,js,jsx}",
     "app/**/redirect.{ts,js}",
@@ -30,7 +33,7 @@ const watchConfig = {
 
 const dev = async () => {
   let cancelToken: CancelToken = new CancelToken();
-  let buildPromise: Promise<void> = buildWithCatch(cancelToken);
+  let buildPromise = buildWithCatch(cancelToken);
   const runBuild = async (type: string, file: string) => {
     logger.info(`${type} ${file}, rebuilding...`);
     cancelToken.cancel();
@@ -39,6 +42,12 @@ const dev = async () => {
     buildPromise = buildWithCatch(cancelToken);
   };
   watchAll(watchConfig, runBuild);
+  watchAll({ "add unlink change": ["app/**/external.{ts,js}"] }, () => {
+    logger.warn(
+      "detected change in external config... restart may be required to apply changes"
+    );
+  });
+  return await buildPromise;
 };
 
 export default dev;

@@ -1,4 +1,9 @@
-import type { ResponseHook, ErrorHook } from "next-app-middleware/runtime";
+import type {
+  ResponseHook,
+  ErrorHook,
+  GenericHook,
+} from "next-app-middleware/runtime";
+import { NextResponse } from "next/server";
 
 export const response: ResponseHook = (res) => {
   console.log(res.status);
@@ -6,4 +11,8 @@ export const response: ResponseHook = (res) => {
 
 export const error: ErrorHook = (_, _2, err) => {
   console.error(err);
+};
+
+export const notFound: GenericHook = () => {
+  return new NextResponse("not found", { status: 404 });
 };

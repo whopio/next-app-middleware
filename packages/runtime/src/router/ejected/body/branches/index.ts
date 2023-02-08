@@ -1,6 +1,7 @@
 import { Branch, BranchTypes } from "../../types";
 import renderCatchAll from "./catch-all";
 import renderDynamic from "./dynamic";
+import external from "./external";
 import renderForward from "./forward";
 import renderMiddleware from "./middleware";
 import renderNext from "./next";
@@ -37,6 +38,9 @@ const renderBranch = (branch: Branch): string => {
     }
     case BranchTypes.REDIRECT: {
       return renderRedirect(branch);
+    }
+    case BranchTypes.EXTERNAL: {
+      return external;
     }
     default: {
       const exhaustive: never = branch;

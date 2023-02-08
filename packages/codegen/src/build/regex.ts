@@ -19,6 +19,9 @@ export const findMiddleware = makeFind(middlewareRegex);
 export const pageRegex = /^(page\.(?:tsx|jsx?))$/;
 export const findPage = makeFind(pageRegex);
 
+export const externalRegex = /^(external\.(?:t|j)s)$/;
+export const findExternal = makeFind(externalRegex);
+
 export const forwardRegex = /^(forward\.(?:t|j)s)$/;
 export const findForward = makeFind(forwardRegex);
 

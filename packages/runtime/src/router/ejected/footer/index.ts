@@ -1,17 +1,7 @@
-const renderMatcherPattern = (segments: number) =>
-  segments > 0
-    ? `
-/((?!_next(?:$|\/)|api(?:$|\/))[^\/]+\/?|$)${`([^\/]+\/?|$)`.repeat(
-        segments - 1
-      )}
-`.trim()
-    : "/";
-
-const renderFooter = (segmentAmount: number) =>
-  `
+const footer = `
 export const config = {
-  matcher: "${renderMatcherPattern(segmentAmount)}"
+  matcher: "/((?!_next(?:$|\/)|api(?:$|\/))[^\/]+\/?|$)*"
 }
 `.trim();
 
-export default renderFooter;
+export default footer;
