@@ -45,41 +45,41 @@ const getNextFullSegment = ([page, ...rest]: SegmentLayout[]) => {
 
 const filterDynamicForwardedRoutes =
   (forward: Forwards) => (layout: SegmentLayout[]) => {
-    const current = getNextFullSegment(layout);
-    if (!current) return false;
-    return current.dynamic && forward.dynamic.includes(current.dynamic);
+    const segment = getNextFullSegment(layout);
+    if (!segment) return false;
+    return segment.dynamic && forward.dynamic.includes(segment.dynamic);
   };
 
 const filterStaticForwardedRoutes =
   (forward: Forwards) => (layout: SegmentLayout[]) => {
-    const current = getNextFullSegment(layout);
-    if (!current) return false;
-    return current.staticForward && forward.static.includes(current.segment);
+    const segment = getNextFullSegment(layout);
+    if (!segment) return false;
+    return segment.staticForward && forward.static.includes(segment.segment);
   };
 
 const filterNextRoutes = (forward: Forwards) => (layout: SegmentLayout[]) => {
-  const current = getNextFullSegment(layout);
-  if (!current) return true;
+  const segment = getNextFullSegment(layout);
+  if (!segment) return true;
   return (
-    (!current.dynamic || !forward.dynamic.includes(current.dynamic)) &&
-    (!current.staticForward || !forward.static.includes(current.segment))
+    (!segment.dynamic || !forward.dynamic.includes(segment.dynamic)) &&
+    (!segment.staticForward || !forward.static.includes(segment.segment))
   );
 };
 
 const getDynamicForwardParam = (layout: SegmentLayout[]) => {
-  const current = getNextFullSegment(layout);
-  if (!current) throw new Error("Error while collecting dynamic forward param");
-  if (!current.dynamic)
-    throw new Error("Expected dynamic forward param in " + current.location);
-  return current.dynamic;
+  const segment = getNextFullSegment(layout);
+  if (!segment) throw new Error("Error while collecting dynamic forward param");
+  if (!segment.dynamic)
+    throw new Error("Expected dynamic forward param in " + segment.location);
+  return segment.dynamic;
 };
 
 const getStaticForwardParam = (layout: SegmentLayout[]) => {
-  const current = getNextFullSegment(layout);
-  if (!current) throw new Error("Error while collecting static forward param");
-  if (!current.staticForward)
-    throw new Error("Expected static forward in " + current.location);
-  return current.segment;
+  const segment = getNextFullSegment(layout);
+  if (!segment) throw new Error("Error while collecting static forward param");
+  if (!segment.staticForward)
+    throw new Error("Expected static forward in " + segment.location);
+  return segment.segment;
 };
 
 // this assumes that the first page in each collection is the same

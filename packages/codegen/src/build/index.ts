@@ -51,18 +51,31 @@ const generate = async (isTypescriptPromise: Promise<boolean>) => {
   const externals: SegmentLayout[] = [];
   routes.forEach(([, route]) => {
     traverseRoute(route, (segment, { type }) => {
-      if (type === RouteTypes.MIDDLEWARE) {
-        imports.middleware.add(segment.location);
-      } else if (type === RouteTypes.DYNAMIC_FORWARD) {
-        imports["forward.dynamic"].add(segment.location);
-      } else if (type === RouteTypes.STATIC_FORWARD) {
-        imports["forward.static"].add(segment.location);
-      } else if (type === RouteTypes.NEXT) {
-        if (segment.external) {
-          externals.push(segment);
-        } else {
-          if (segment.redirect) imports.redirect.add(segment.location);
-          if (segment.rewrite) imports.rewrite.add(segment.location);
+      switch (type) {
+        case RouteTypes.MIDDLEWARE: {
+          imports.middleware.add(segment.location);
+          break;
+        }
+        case RouteTypes.DYNAMIC_FORWARD: {
+          imports["forward.dynamic"].add(segment.location);
+          break;
+        }
+        case RouteTypes.STATIC_FORWARD: {
+          imports["forward.static"].add(segment.location);
+          break;
+        }
+        case RouteTypes.NEXT: {
+          if (segment.external) {
+            externals.push(segment);
+          } else {
+            if (segment.redirect) imports.redirect.add(segment.location);
+            if (segment.rewrite) imports.rewrite.add(segment.location);
+          }
+          break;
+        }
+        default: {
+          const _exhaustive: never = type;
+          return _exhaustive;
         }
       }
     });

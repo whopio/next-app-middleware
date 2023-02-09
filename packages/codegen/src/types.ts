@@ -46,7 +46,7 @@ export type ForwarderConfig = {
 export type RouteConfig =
   | ForwarderConfig
   | {
-      type: RouteTypes.MIDDLEWARE | RouteTypes.NEXT;
+      type: RouteTypes.MIDDLEWARE;
     };
 
 export type MergedRoute = [

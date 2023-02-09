@@ -141,68 +141,75 @@ const ejectRoute = (
     };
   }
 
-  if (config.type === RouteTypes.MIDDLEWARE) {
-    return {
-      type: BranchTypes.MIDDLEWARE,
-      internalPath: currentSegment.internalPath,
-      location: currentSegment.location,
-      then:
-        next instanceof Array
-          ? ejectRoute(next, appliedParams, catchAllApplied)
-          : next
-          ? ejectPage(next, appliedParams, catchAllApplied)
-          : {
-              type: BranchTypes.NOT_FOUND,
-            },
-    };
-  } else if (config.type === RouteTypes.DYNAMIC_FORWARD) {
-    return {
-      type: BranchTypes.DYNAMIC_FORWARD,
-      name: config.name,
-      internalPath: currentSegment.internalPath,
-      location: currentSegment.location,
-      then:
-        next instanceof Array
-          ? ejectRoute(next, appliedParams, catchAllApplied)
-          : next
-          ? ejectPage(next, appliedParams, catchAllApplied)
-          : {
-              type: BranchTypes.NOT_FOUND,
-            },
-      forward:
-        forward instanceof Array
-          ? ejectRoute(forward, appliedParams, catchAllApplied)
-          : forward
-          ? ejectPage(forward, appliedParams, catchAllApplied)
-          : {
-              type: BranchTypes.NOT_FOUND,
-            },
-    };
-  } else if (config.type === RouteTypes.STATIC_FORWARD) {
-    return {
-      type: BranchTypes.STATIC_FORWARD,
-      name: config.name,
-      internalPath: currentSegment.internalPath,
-      location: currentSegment.location,
-      then:
-        next instanceof Array
-          ? ejectRoute(next, appliedParams, catchAllApplied)
-          : next
-          ? ejectPage(next, appliedParams, catchAllApplied)
-          : {
-              type: BranchTypes.NOT_FOUND,
-            },
-      forward:
-        forward instanceof Array
-          ? ejectRoute(forward, appliedParams, catchAllApplied)
-          : forward
-          ? ejectPage(forward, appliedParams, catchAllApplied)
-          : {
-              type: BranchTypes.NOT_FOUND,
-            },
-    };
+  switch (config.type) {
+    case RouteTypes.MIDDLEWARE: {
+      return {
+        type: BranchTypes.MIDDLEWARE,
+        internalPath: currentSegment.internalPath,
+        location: currentSegment.location,
+        then:
+          next instanceof Array
+            ? ejectRoute(next, appliedParams, catchAllApplied)
+            : next
+            ? ejectPage(next, appliedParams, catchAllApplied)
+            : {
+                type: BranchTypes.NOT_FOUND,
+              },
+      };
+    }
+    case RouteTypes.DYNAMIC_FORWARD: {
+      return {
+        type: BranchTypes.DYNAMIC_FORWARD,
+        name: config.name,
+        internalPath: currentSegment.internalPath,
+        location: currentSegment.location,
+        then:
+          next instanceof Array
+            ? ejectRoute(next, appliedParams, catchAllApplied)
+            : next
+            ? ejectPage(next, appliedParams, catchAllApplied)
+            : {
+                type: BranchTypes.NOT_FOUND,
+              },
+        forward:
+          forward instanceof Array
+            ? ejectRoute(forward, appliedParams, catchAllApplied)
+            : forward
+            ? ejectPage(forward, appliedParams, catchAllApplied)
+            : {
+                type: BranchTypes.NOT_FOUND,
+              },
+      };
+    }
+    case RouteTypes.STATIC_FORWARD: {
+      return {
+        type: BranchTypes.STATIC_FORWARD,
+        name: config.name,
+        internalPath: currentSegment.internalPath,
+        location: currentSegment.location,
+        then:
+          next instanceof Array
+            ? ejectRoute(next, appliedParams, catchAllApplied)
+            : next
+            ? ejectPage(next, appliedParams, catchAllApplied)
+            : {
+                type: BranchTypes.NOT_FOUND,
+              },
+        forward:
+          forward instanceof Array
+            ? ejectRoute(forward, appliedParams, catchAllApplied)
+            : forward
+            ? ejectPage(forward, appliedParams, catchAllApplied)
+            : {
+                type: BranchTypes.NOT_FOUND,
+              },
+      };
+    }
+    default: {
+      const exhaustive: never = config;
+      return exhaustive;
+    }
   }
-  throw new Error("not happening");
 };
 
 const specialCases = ["", ":", "*", "\\"];
