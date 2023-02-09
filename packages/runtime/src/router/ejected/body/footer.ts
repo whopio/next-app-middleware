@@ -7,6 +7,7 @@ const renderBodyFooter = ({
   rewrite,
   redirect,
   response,
+  external,
 }: RouterHooksConfig) =>
   `
 if (!response) {
@@ -14,11 +15,21 @@ if (!response) {
     ${
       notFound
         ? `
-      response = (await nofFoundHook(req, res)) || NextResponse.rewrite(new URL("/404", nextRequest.nextUrl));
+      response = (await notFoundHook(req, res)) || NextResponse.rewrite(new URL("/404", nextRequest.nextUrl));
     `
         : `response = NextResponse.rewrite(new URL("/404", nextRequest.nextUrl));`
     }
     
+  } else if (external) {
+    ${
+      external
+        ? `
+      response = await externalHook(req, res) || NextResponse.next();
+    `
+        : `
+      response = NextResponse.next();
+    `
+    }
   } else if (next) {
     let final_pathname = incomingPathname;
     if (typeof next === "function") {

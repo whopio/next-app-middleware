@@ -2,8 +2,9 @@ import { SegmentLayout } from "../types";
 
 const getPages = (layout: SegmentLayout): SegmentLayout[] => {
   const result: SegmentLayout[] = [];
-  // pages, redirects and rewrites are considered endpoints
-  if (layout.page || layout.redirect || layout.rewrite) result.push(layout);
+  // pages, externals, redirects and rewrites are considered endpoints
+  if (layout.page || layout.external || layout.redirect || layout.rewrite)
+    result.push(layout);
   for (const child of Object.values(layout.children)) {
     result.push(...getPages(child));
   }

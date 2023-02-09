@@ -1,3 +1,9 @@
+import Script from "next/script";
+
 export default function Home() {
-  return <></>;
+  return (
+    <>
+      <img src="/vercel.svg" alt="" />
+    </>
+  );
 }

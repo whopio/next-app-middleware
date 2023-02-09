@@ -67,6 +67,16 @@ export const locale = () => {
 
 In this example the forward.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
 
+### external.{ts,js}
+
+An external.ts file allows routing traffic to other applications:
+
+```ts
+export const origin = "https://example.com";
+
+export default origin;
+```
+
 ### rewrite.{ts,js}
 
 A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but can optionally return the final location the request will be routed to.
@@ -191,9 +201,3 @@ export const error: ErrorHook = (req, res, err) => {
   return new NextResponse(null, { status: 500 });
 };
 ```
-
-## ideas
-
-### file convention: external.{ts,js}
-
-Once this is placed in a directory all requests starting with that path will be sent to the return value of the default export if it is a function, if its a string that value will be used. This will make it so the final middleware will have to match anything that starts with that path. As a convenience feature middleware will also match the origin of requests to public files and rewrite them as well if the origin matches the external app.

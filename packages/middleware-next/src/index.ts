@@ -9,12 +9,26 @@ export const withMiddleware =
       | ((phase: string, args: { defaultConfig: NextConfig }) => NextConfig)
   ) =>
   async (phase: string, args: { defaultConfig: NextConfig }) => {
+    let result: ReturnType<typeof prod>;
     if (phase === PHASE_DEVELOPMENT_SERVER) {
-      dev();
+      result = dev();
     } else {
-      await prod();
+      result = prod();
     }
-    return typeof next === "function" ? next(phase, args) : next;
+    const cfg = typeof next === "function" ? next(phase, args) : next;
+    const oldRewriteGetter = cfg.rewrites;
+    cfg.rewrites = async () => {
+      const oldRewrites = oldRewriteGetter ? await oldRewriteGetter() : [];
+      if (oldRewrites instanceof Array) {
+        return [...(await result), ...oldRewrites];
+      } else {
+        return {
+          ...oldRewrites,
+          afterFiles: [...(await result), ...oldRewrites.afterFiles],
+        };
+      }
+    };
+    return cfg;
   };
 
 export default withMiddleware;

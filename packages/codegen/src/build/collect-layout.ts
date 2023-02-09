@@ -5,6 +5,7 @@ import collectModuleExports from "./collect-exports";
 import {
   catchAllSegmentRegex,
   dynamicSegmentRegex,
+  findExternal,
   findForward,
   findMiddleware,
   findPage,
@@ -97,6 +98,7 @@ const collectLayout = async (
     ? parentForward
     : await collectForwards(dir, filesAndFolders);
   const catchAll = isCatchAllSegment(currentSegment);
+  const external = findExternal(filesAndFolders);
   const hash =
     externalPath === "/"
       ? "/"
@@ -109,8 +111,14 @@ const collectLayout = async (
               ? "*"
               : segment
           )
-          .join("/") + "/";
+          .join("/") +
+        (external ? "/\\" : "") +
+        "/";
   const layoutPage = findPage(filesAndFolders);
+  if (layoutPage && external)
+    throw new Error(
+      `Error while collecting routing config for "${dir}": page and external can not exist in the same segment.`
+    );
   const layoutMiddleware = findMiddleware(filesAndFolders);
   const layout: SegmentLayout = {
     location: dir,
@@ -143,14 +151,17 @@ const collectLayout = async (
     rewrite: !!findRewrite(filesAndFolders),
     redirect: !!findRedirect(filesAndFolders),
     page: !!layoutPage,
+    external,
     middleware: !!layoutMiddleware,
-    children: await collectChildren(
-      dir,
-      externalPath,
-      filesAndFolders,
-      forward,
-      () => layout
-    ),
+    children: !external
+      ? await collectChildren(
+          dir,
+          externalPath,
+          filesAndFolders,
+          forward,
+          () => layout
+        )
+      : {},
     parent: getParent,
   };
   return layout;
