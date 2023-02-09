@@ -3,7 +3,7 @@ import {
   BranchTypes,
   PathSegmentSwitch,
 } from "@next-app-middleware/runtime/dist/router/ejected";
-import { FlattenedRoute, SegmentLayout } from "../types";
+import { FlattenedRoute, RouteTypes, SegmentLayout } from "../types";
 
 type MatcherMap = Map<string, FlattenedRoute | MatcherMap>;
 
@@ -95,16 +95,13 @@ const ejectPage = (
     };
   return {
     type: BranchTypes.NEXT,
-    internalPath:
-      page.internalPath.includes("/:") ||
-      /\/(\*[^\/]*)\/$/.test(page.internalPath)
-        ? page.internalPath
-        : undefined,
+    internalPath: page.internalPath,
+    externalPath: page.externalPath,
   };
 };
 
 const ejectRoute = (
-  [currentSegment, type, next, forward]: FlattenedRoute,
+  [currentSegment, config, next, forward]: FlattenedRoute,
   appliedParams = new Set<string>(),
   catchAllApplied = false
 ): Branch => {
@@ -122,7 +119,7 @@ const ejectRoute = (
       name,
       index,
       then: ejectRoute(
-        [currentSegment, type, next, forward],
+        [currentSegment, config, next, forward],
         appliedParams,
         catchAllApplied
       ),
@@ -137,14 +134,14 @@ const ejectRoute = (
       name,
       index,
       then: ejectRoute(
-        [currentSegment, type, next, forward],
+        [currentSegment, config, next, forward],
         appliedParams,
         true
       ),
     };
   }
 
-  if (typeof type === "number") {
+  if (config.type === RouteTypes.MIDDLEWARE) {
     return {
       type: BranchTypes.MIDDLEWARE,
       internalPath: currentSegment.internalPath,
@@ -158,10 +155,33 @@ const ejectRoute = (
               type: BranchTypes.NOT_FOUND,
             },
     };
-  } else {
+  } else if (config.type === RouteTypes.DYNAMIC_FORWARD) {
     return {
-      type: BranchTypes.FORWARD,
-      name: type,
+      type: BranchTypes.DYNAMIC_FORWARD,
+      name: config.name,
+      internalPath: currentSegment.internalPath,
+      location: currentSegment.location,
+      then:
+        next instanceof Array
+          ? ejectRoute(next, appliedParams, catchAllApplied)
+          : next
+          ? ejectPage(next, appliedParams, catchAllApplied)
+          : {
+              type: BranchTypes.NOT_FOUND,
+            },
+      forward:
+        forward instanceof Array
+          ? ejectRoute(forward, appliedParams, catchAllApplied)
+          : forward
+          ? ejectPage(forward, appliedParams, catchAllApplied)
+          : {
+              type: BranchTypes.NOT_FOUND,
+            },
+    };
+  } else if (config.type === RouteTypes.STATIC_FORWARD) {
+    return {
+      type: BranchTypes.STATIC_FORWARD,
+      name: config.name,
       internalPath: currentSegment.internalPath,
       location: currentSegment.location,
       then:
@@ -182,6 +202,7 @@ const ejectRoute = (
             },
     };
   }
+  throw new Error("not happening");
 };
 
 const specialCases = ["", ":", "*", "\\"];

@@ -2,6 +2,8 @@ import {
   FlattenedRoute,
   LayoutType,
   MergedRoute,
+  RouteConfig,
+  RouteTypes,
   SegmentLayout,
 } from "../types";
 
@@ -16,12 +18,6 @@ export const getRoute = (page: SegmentLayout): SegmentLayout[] => {
   return result.reverse();
 };
 
-const getNextDynamicParam = ([current, , forward]: MergedRoute): string => {
-  if (current.dynamic) return current.dynamic;
-  else if (!forward) throw new Error("getNextDynamicParam");
-  else return getNextDynamicParam(forward);
-};
-
 export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
   | FlattenedRoute
   | SegmentLayout
@@ -30,26 +26,26 @@ export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
     if (forward) {
       const flattenedRoute: FlattenedRoute = [
         current,
-        0,
+        { type: RouteTypes.MIDDLEWARE },
         flattenMergedRoute([{ ...current, middleware: false }, next, forward]),
       ];
       return flattenedRoute;
     } else {
       const flattenedRoute: FlattenedRoute = [
         current,
-        0,
+        { type: RouteTypes.MIDDLEWARE },
         next instanceof Array ? flattenMergedRoute(next) : next && next,
         forward && flattenMergedRoute(forward),
       ];
       return flattenedRoute;
     }
   } else if (forward) {
-    const param = getNextDynamicParam(forward);
+    const [type, forwardLayout] = forward;
     const flattenedRoute: FlattenedRoute = [
       current,
-      param,
+      type,
       next instanceof Array ? flattenMergedRoute(next) : next,
-      forward && flattenMergedRoute(forward),
+      flattenMergedRoute(forwardLayout),
     ];
     return flattenedRoute;
   } else {
@@ -60,19 +56,19 @@ export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
 
 export const traverseRoute = <T>(
   [current, type, next, forward]: FlattenedRoute,
-  onSegment: (segment: SegmentLayout, type: 0 | 1 | string) => T
+  onSegment: (segment: SegmentLayout, type: RouteConfig) => T
 ): LayoutType<T> => {
   return [
     onSegment(current, type),
     next instanceof Array
       ? traverseRoute(next, onSegment)
       : next
-      ? [onSegment(next, 1), , ,]
+      ? [onSegment(next, { type: RouteTypes.NEXT }), , ,]
       : undefined,
     forward instanceof Array
       ? traverseRoute(forward, onSegment)
       : forward
-      ? [onSegment(forward, 1), , ,]
+      ? [onSegment(forward, { type: RouteTypes.NEXT }), , ,]
       : undefined,
   ];
 };

@@ -13,11 +13,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "next": "^13.1",
+    "next": "13.1.6",
     "tsconfig": "workspace:^0.0.0",
     "tsup": "^6.5.0"
   },
   "peerDependencies": {
-    "next": "^13.1"
+    "next": "^13.1.6"
   }
 }

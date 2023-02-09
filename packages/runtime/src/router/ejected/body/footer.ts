@@ -43,6 +43,8 @@ if (!response) {
         final_pathname = next(params);
       `
       }
+    } else if (typeof next === "string") {
+      final_pathname = next;
     }
     const search = internals.searchParams
       ? internals.searchParams

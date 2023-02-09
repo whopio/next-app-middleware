@@ -1,6 +1,7 @@
 export enum BranchTypes {
   MIDDLEWARE,
-  FORWARD,
+  DYNAMIC_FORWARD,
+  STATIC_FORWARD,
   SWITCH,
   NEXT,
   EXTERNAL,
@@ -18,8 +19,17 @@ export type EjectedMiddleware = {
   then: Branch;
 };
 
-export type EjectedForward = {
-  type: BranchTypes.FORWARD;
+export type EjectedDynamicForward = {
+  type: BranchTypes.DYNAMIC_FORWARD;
+  internalPath: string;
+  location: string;
+  name: string;
+  then?: Branch;
+  forward?: Branch;
+};
+
+export type EjectedStaticForward = {
+  type: BranchTypes.STATIC_FORWARD;
   internalPath: string;
   location: string;
   name: string;
@@ -50,7 +60,8 @@ export type EjectedNotFoundResponse = {
 
 export type EjectedNextResponse = {
   type: BranchTypes.NEXT;
-  internalPath?: string;
+  internalPath: string;
+  externalPath: string;
 };
 
 export type EjectedRewrite = {
@@ -83,7 +94,8 @@ export type CatchAllSegment = {
 
 export type Branch =
   | EjectedMiddleware
-  | EjectedForward
+  | EjectedDynamicForward
+  | EjectedStaticForward
   | PathSegmentSwitch
   | EjectedNextResponse
   | EjectedNotFoundResponse
@@ -107,7 +119,8 @@ export type RouterHooksConfig = {
 export type Imports = {
   middleware: Set<string>;
   rewrite: Set<string>;
-  forward: Set<string>;
+  "forward.dynamic": Set<string>;
+  "forward.static": Set<string>;
   redirect: Set<string>;
 };
 

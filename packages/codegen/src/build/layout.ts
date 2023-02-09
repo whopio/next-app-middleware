@@ -1,4 +1,10 @@
-import { ExternalLayout, MergedRoute, SegmentLayout } from "../types";
+import {
+  ExternalLayout,
+  Forwards,
+  MergedRoute,
+  RouteTypes,
+  SegmentLayout,
+} from "../types";
 import { getRoute } from "./route";
 
 export const validateLayout = (externalLayout: ExternalLayout) => {
@@ -31,23 +37,53 @@ export const resolveLayouts = (pages: SegmentLayout[]) => {
   return resolved;
 };
 
-const filterDynamicRoutes =
-  (forward: string[]) =>
+const filterDynamicForwardedRoutes =
+  (forward: Forwards) =>
   ([page, ...rest]: SegmentLayout[]) => {
     let current: SegmentLayout | undefined = page;
     while (current && current.group) current = rest.shift();
     if (!current) return false;
-    return current.dynamic && forward.includes(current.dynamic);
+    return current.dynamic && forward.dynamic.includes(current.dynamic);
+  };
+
+const filterStaticForwardedRoutes =
+  (forward: Forwards) =>
+  ([page, ...rest]: SegmentLayout[]) => {
+    let current: SegmentLayout | undefined = page;
+    while (current && current.group) current = rest.shift();
+    if (!current) return false;
+    return current.staticForward && forward.static.includes(current.segment);
   };
 
 const filterNextRoutes =
-  (forward: string[]) =>
+  (forward: Forwards) =>
   ([page, ...rest]: SegmentLayout[]) => {
     let current: SegmentLayout | undefined = page;
     while (current && current.group) current = rest.shift();
     if (!current) return true;
-    return !current.dynamic || !forward.includes(current.dynamic);
+    return (
+      (!current.dynamic || !forward.dynamic.includes(current.dynamic)) &&
+      (!current.staticForward || !forward.static.includes(current.segment))
+    );
   };
+
+const getDynamicForwardParam = ([page, ...rest]: SegmentLayout[]) => {
+  let current: SegmentLayout | undefined = page;
+  while (current && current.group) current = rest.shift();
+  if (!current) throw new Error("Error while collecting dynamic forward param");
+  if (!current.dynamic)
+    throw new Error("Expected dynamic forward param in " + current.location);
+  return current.dynamic;
+};
+
+const getStaticForwardParam = ([page, ...rest]: SegmentLayout[]) => {
+  let current: SegmentLayout | undefined = page;
+  while (current && current.group) current = rest.shift();
+  if (!current) throw new Error("Error while collecting static forward param");
+  if (!current.staticForward)
+    throw new Error("Expected static forward in " + current.location);
+  return current.segment;
+};
 
 // this assumes that the first page in each collection is the same
 export const mergeLayouts = (pages: SegmentLayout[][]): MergedRoute => {
@@ -55,15 +91,42 @@ export const mergeLayouts = (pages: SegmentLayout[][]): MergedRoute => {
   const nextPages = pages.map(([, ...pages]) => pages);
   const hasLast = !!nextPages.find((pages) => pages.length === 0);
   const nexts = nextPages.filter(filterNextRoutes(currentPage.forward));
-  const forwards = nextPages.filter(filterDynamicRoutes(currentPage.forward));
+  const dynamicForwards = nextPages.filter(
+    filterDynamicForwardedRoutes(currentPage.forward)
+  );
+  const staticForwards = nextPages.filter(
+    filterStaticForwardedRoutes(currentPage.forward)
+  );
   if (hasLast && nexts.length > 1) {
     throw new Error("1");
   }
+  if (dynamicForwards.length && staticForwards.length)
+    throw new Error(
+      "Found both static and dynamic forwards in the same layout segment"
+    );
   const next = hasLast
     ? currentPage
     : nexts.length
     ? mergeLayouts(nexts)
     : undefined;
-  const forward = forwards.length ? mergeLayouts(forwards) : undefined;
+  if (staticForwards.length)
+    console.log("static forward", getStaticForwardParam(staticForwards[0]));
+  const forward = dynamicForwards.length
+    ? ([
+        {
+          type: RouteTypes.DYNAMIC_FORWARD,
+          name: getDynamicForwardParam(dynamicForwards[0]),
+        },
+        mergeLayouts(dynamicForwards),
+      ] as const)
+    : staticForwards.length
+    ? ([
+        {
+          type: RouteTypes.STATIC_FORWARD,
+          name: getStaticForwardParam(staticForwards[0]),
+        },
+        mergeLayouts(staticForwards),
+      ] as const)
+    : undefined;
   return [currentPage, next, forward];
 };

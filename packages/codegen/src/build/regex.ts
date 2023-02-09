@@ -22,8 +22,11 @@ export const findPage = makeFind(pageRegex);
 export const externalRegex = /^(external\.(?:t|j)s)$/;
 export const findExternal = makeFind(externalRegex);
 
-export const forwardRegex = /^(forward\.(?:t|j)s)$/;
-export const findForward = makeFind(forwardRegex);
+export const dynamicForwardRegex = /^(forward\.dynamic\.(?:t|j)s)$/;
+export const findDynamicForward = makeFind(dynamicForwardRegex);
+
+export const staticForwardRegex = /^(forward\.static\.(?:t|j)s)$/;
+export const findStaticForward = makeFind(staticForwardRegex);
 
 export const rewriteRegex = /^(rewrite\.(?:t|j)s)$/;
 export const findRewrite = makeFind(rewriteRegex);

@@ -1,7 +1,10 @@
 import { EjectedNextResponse } from "../../types";
 
-const renderNext = ({ internalPath }: EjectedNextResponse) =>
-  (internalPath
+const isDynamic = (internalPath: string) =>
+  internalPath.includes("/:") || /\/(\*[^\/]*)\/$/.test(internalPath);
+
+const renderNext = ({ internalPath, externalPath }: EjectedNextResponse) =>
+  (isDynamic(internalPath)
     ? `
 next = (final_params) =>
   \`${internalPath
@@ -14,6 +17,10 @@ next = (final_params) =>
         `\${(final_params.${value.slice(1)} as string[]).join("/")}`
       );
     })}\`
+`
+    : internalPath !== externalPath
+    ? `
+next = "${internalPath}";
 `
     : `
 next = true;
