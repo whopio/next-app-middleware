@@ -23,7 +23,7 @@ export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
   | SegmentLayout
   | undefined => {
   if (current.middleware) {
-    if (forward) {
+    if (forward && !current.group) {
       const flattenedRoute: FlattenedRoute = [
         current,
         { type: RouteTypes.MIDDLEWARE },
@@ -35,19 +35,22 @@ export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
         current,
         { type: RouteTypes.MIDDLEWARE },
         next instanceof Array ? flattenMergedRoute(next) : next && next,
-        forward && flattenMergedRoute(forward),
       ];
       return flattenedRoute;
     }
   } else if (forward) {
-    const [type, forwardLayout] = forward;
-    const flattenedRoute: FlattenedRoute = [
-      current,
-      type,
-      next instanceof Array ? flattenMergedRoute(next) : next,
-      flattenMergedRoute(forwardLayout),
-    ];
-    return flattenedRoute;
+    if (!current.group) {
+      const [type, forwardLayout] = forward;
+      const flattenedRoute: FlattenedRoute = [
+        current,
+        type,
+        next instanceof Array ? flattenMergedRoute(next) : next,
+        flattenMergedRoute(forwardLayout),
+      ];
+      return flattenedRoute;
+    } else {
+      return flattenMergedRoute(forward[1]);
+    }
   } else {
     if (next instanceof Array) return flattenMergedRoute(next);
     return next;

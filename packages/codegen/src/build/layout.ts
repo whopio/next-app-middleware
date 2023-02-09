@@ -37,48 +37,45 @@ export const resolveLayouts = (pages: SegmentLayout[]) => {
   return resolved;
 };
 
+const getNextFullSegment = ([page, ...rest]: SegmentLayout[]) => {
+  let current: SegmentLayout | undefined = page;
+  while (current && current.group) current = rest.shift();
+  return current;
+};
+
 const filterDynamicForwardedRoutes =
-  (forward: Forwards) =>
-  ([page, ...rest]: SegmentLayout[]) => {
-    let current: SegmentLayout | undefined = page;
-    while (current && current.group) current = rest.shift();
+  (forward: Forwards) => (layout: SegmentLayout[]) => {
+    const current = getNextFullSegment(layout);
     if (!current) return false;
     return current.dynamic && forward.dynamic.includes(current.dynamic);
   };
 
 const filterStaticForwardedRoutes =
-  (forward: Forwards) =>
-  ([page, ...rest]: SegmentLayout[]) => {
-    let current: SegmentLayout | undefined = page;
-    while (current && current.group) current = rest.shift();
+  (forward: Forwards) => (layout: SegmentLayout[]) => {
+    const current = getNextFullSegment(layout);
     if (!current) return false;
     return current.staticForward && forward.static.includes(current.segment);
   };
 
-const filterNextRoutes =
-  (forward: Forwards) =>
-  ([page, ...rest]: SegmentLayout[]) => {
-    let current: SegmentLayout | undefined = page;
-    while (current && current.group) current = rest.shift();
-    if (!current) return true;
-    return (
-      (!current.dynamic || !forward.dynamic.includes(current.dynamic)) &&
-      (!current.staticForward || !forward.static.includes(current.segment))
-    );
-  };
+const filterNextRoutes = (forward: Forwards) => (layout: SegmentLayout[]) => {
+  const current = getNextFullSegment(layout);
+  if (!current) return true;
+  return (
+    (!current.dynamic || !forward.dynamic.includes(current.dynamic)) &&
+    (!current.staticForward || !forward.static.includes(current.segment))
+  );
+};
 
-const getDynamicForwardParam = ([page, ...rest]: SegmentLayout[]) => {
-  let current: SegmentLayout | undefined = page;
-  while (current && current.group) current = rest.shift();
+const getDynamicForwardParam = (layout: SegmentLayout[]) => {
+  const current = getNextFullSegment(layout);
   if (!current) throw new Error("Error while collecting dynamic forward param");
   if (!current.dynamic)
     throw new Error("Expected dynamic forward param in " + current.location);
   return current.dynamic;
 };
 
-const getStaticForwardParam = ([page, ...rest]: SegmentLayout[]) => {
-  let current: SegmentLayout | undefined = page;
-  while (current && current.group) current = rest.shift();
+const getStaticForwardParam = (layout: SegmentLayout[]) => {
+  const current = getNextFullSegment(layout);
   if (!current) throw new Error("Error while collecting static forward param");
   if (!current.staticForward)
     throw new Error("Expected static forward in " + current.location);
