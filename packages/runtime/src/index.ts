@@ -1,6 +1,7 @@
 export type {
   ErrorHook,
-  Forwarder,
+  StaticForwarder,
+  DynamicForwarder,
   GenericHook,
   JsonHook,
   MiddlewareHandler,

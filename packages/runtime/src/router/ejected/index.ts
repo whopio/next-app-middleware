@@ -5,7 +5,7 @@ import {
   Branch,
   BranchTypes,
   DynamicSegment,
-  EjectedForward,
+  EjectedDynamicForward,
   EjectedMiddleware,
   EjectedNextResponse,
   EjectedRedirect,
@@ -20,7 +20,7 @@ export { BranchTypes };
 export type {
   Branch,
   DynamicSegment,
-  EjectedForward,
+  EjectedDynamicForward,
   EjectedMiddleware,
   EjectedNextResponse,
   EjectedRedirect,

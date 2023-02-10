@@ -1,16 +1,17 @@
 import fse from "fs-extra";
 import { join } from "path";
-import { SegmentLayout } from "../types";
+import { Forwards, SegmentLayout } from "../types";
 import collectModuleExports from "./collect-exports";
 import {
   catchAllSegmentRegex,
   dynamicSegmentRegex,
+  findDynamicForward,
   findExternal,
-  findForward,
   findMiddleware,
   findPage,
   findRedirect,
   findRewrite,
+  findStaticForward,
   isCatchAllSegment,
   isRouteGroupSegment,
   routeGroupSegmentRegex,
@@ -19,17 +20,25 @@ import {
 const { readdir, stat } = fse;
 
 const collectForwards = async (dir: string, filesAndFolders: string[]) => {
-  const forwardFile = findForward(filesAndFolders);
-  if (forwardFile) {
-    return await collectModuleExports(join(dir, forwardFile));
-  } else return [];
+  const dynamicForwardFile = findDynamicForward(filesAndFolders);
+  const dynamicForwardsPromise = dynamicForwardFile
+    ? collectModuleExports(join(dir, dynamicForwardFile))
+    : Promise.resolve([]);
+  const staticForwardFile = findStaticForward(filesAndFolders);
+  const staticForwardsPromise = staticForwardFile
+    ? collectModuleExports(join(dir, staticForwardFile))
+    : Promise.resolve([]);
+  return {
+    dynamic: await dynamicForwardsPromise,
+    static: await staticForwardsPromise,
+  };
 };
 
 const collectChildren = async (
   dir: string,
   externalPath: string,
   filesAndFolders: string[],
-  forward: string[],
+  forward: Forwards,
   getParent: () => SegmentLayout
 ) => {
   const children: Record<string, SegmentLayout> = {};
@@ -55,7 +64,7 @@ const collectChildren = async (
         } else {
           const match = dynamicSegmentRegex.exec(fileOrFolder);
           if (match) {
-            if (forward.includes(match[1])) {
+            if (forward.dynamic.includes(match[1])) {
               children[fileOrFolder] = await collectLayout(
                 join(dir, fileOrFolder),
                 externalPath,
@@ -71,12 +80,20 @@ const collectChildren = async (
               );
             }
           } else {
-            children[fileOrFolder] = await collectLayout(
-              join(dir, fileOrFolder),
-              join(externalPath, fileOrFolder),
-              forward,
-              getParent
-            );
+            if (forward.static.includes(fileOrFolder))
+              children[fileOrFolder] = await collectLayout(
+                join(dir, fileOrFolder),
+                externalPath,
+                forward,
+                getParent
+              );
+            else
+              children[fileOrFolder] = await collectLayout(
+                join(dir, fileOrFolder),
+                join(externalPath, fileOrFolder),
+                forward,
+                getParent
+              );
           }
         }
       }
@@ -88,7 +105,7 @@ const collectChildren = async (
 const collectLayout = async (
   dir: string = "app",
   externalPath = "/",
-  parentForward: string[] = [],
+  parentForward: Forwards = { dynamic: [], static: [] },
   getParent?: () => SegmentLayout
 ) => {
   const filesAndFolders = await readdir(dir);
@@ -144,6 +161,7 @@ const collectLayout = async (
     externalPath: externalPath === "/" ? "/" : externalPath + "/",
     segment: currentSegment,
     group: isRouteGroupSegment(currentSegment),
+    staticForward: parentForward.static.includes(currentSegment),
     hash,
     dynamic,
     catchAll,

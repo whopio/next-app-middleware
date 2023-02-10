@@ -84,10 +84,11 @@ type BaseHandler<Param extends DefaultParam, R> = (
 export type MiddlewareHandler<Param extends DefaultParam = DefaultParam> =
   BaseHandler<Param, MiddleWareHandlerResult>;
 
-export type Forwarder<Param extends DefaultParam = DefaultParam> = BaseHandler<
-  Param,
-  string | void
->;
+export type DynamicForwarder<Param extends DefaultParam = DefaultParam> =
+  BaseHandler<Param, string | void>;
+
+export type StaticForwarder<Param extends DefaultParam = DefaultParam> =
+  BaseHandler<Param, boolean | void>;
 
 export type RewriteHandler<Param extends DefaultParam = DefaultParam> =
   BaseHandler<Param, string | URL | NextURL | void>;
@@ -105,4 +106,8 @@ export type RedirectHandler<Param extends DefaultParam = DefaultParam> =
     | void
   >;
 
-export type RuntimeNext = ((params: ParamType) => string) | true | undefined;
+export type RuntimeNext =
+  | ((params: ParamType) => string)
+  | true
+  | string
+  | undefined;

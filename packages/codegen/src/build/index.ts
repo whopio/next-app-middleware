@@ -6,7 +6,7 @@ import { transform } from "@swc/core";
 import fse from "fs-extra";
 import { join } from "path";
 import { format } from "prettier";
-import { FlattenedRoute, SegmentLayout } from "../types";
+import { FlattenedRoute, RouteTypes, SegmentLayout } from "../types";
 import CancelToken from "../util/CancelToken";
 import logger from "../util/log";
 import collectLayout from "./collect-layout";
@@ -42,25 +42,41 @@ const generate = async (isTypescriptPromise: Promise<boolean>) => {
     return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
   });
   const imports: Imports = {
-    forward: new Set(),
+    "forward.dynamic": new Set(),
+    "forward.static": new Set(),
     middleware: new Set(),
     redirect: new Set(),
     rewrite: new Set(),
   };
   const externals: SegmentLayout[] = [];
   routes.forEach(([, route]) => {
-    traverseRoute(route, (segment, type) => {
-      if (type === 0) {
-        imports.middleware.add(segment.location);
-      } else if (type === 1) {
-        if (segment.external) {
-          externals.push(segment);
-        } else {
-          if (segment.redirect) imports.redirect.add(segment.location);
-          if (segment.rewrite) imports.rewrite.add(segment.location);
+    traverseRoute(route, (segment, { type }) => {
+      switch (type) {
+        case RouteTypes.MIDDLEWARE: {
+          imports.middleware.add(segment.location);
+          break;
         }
-      } else {
-        imports.forward.add(segment.location);
+        case RouteTypes.DYNAMIC_FORWARD: {
+          imports["forward.dynamic"].add(segment.location);
+          break;
+        }
+        case RouteTypes.STATIC_FORWARD: {
+          imports["forward.static"].add(segment.location);
+          break;
+        }
+        case RouteTypes.NEXT: {
+          if (segment.external) {
+            externals.push(segment);
+          } else {
+            if (segment.redirect) imports.redirect.add(segment.location);
+            if (segment.rewrite) imports.rewrite.add(segment.location);
+          }
+          break;
+        }
+        default: {
+          const _exhaustive: never = type;
+          return _exhaustive;
+        }
       }
     });
   });

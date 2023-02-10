@@ -47,25 +47,45 @@ const middleware: MiddlewareHandler = (req, res) => {
 export default middleware;
 ```
 
-### forward.{ts,js}
+### forward.dynamic.{ts,js}
 
-Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten.
+Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar [dyanmic] segments.
 
 ```
 /app/
   - [locale]
     - page.tsx
-  - forward.ts
+  - forward.dynamic.ts
 ```
 
 ```ts
-// app/forward.ts
+// app/forward.dynamic.ts
 export const locale = () => {
   return "en";
 };
 ```
 
-In this example the forward.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
+In this example the forward.dynamic.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
+
+### forward.static.{ts,js}
+
+Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar static segments.
+
+```
+/app/
+  - hosted
+    - page.tsx
+  - forward.static.ts
+```
+
+```ts
+// app/forward.static.ts
+export const hosted = () => {
+  return true;
+};
+```
+
+In this example the forward.static.ts file declares a hosted rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/hosted` and will block all direct external requests to `/hosted`
 
 ### external.{ts,js}
 

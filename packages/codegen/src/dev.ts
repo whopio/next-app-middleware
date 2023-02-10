@@ -28,7 +28,11 @@ const watchConfig = {
     "app/**/redirect.{ts,js}",
     "public/**/*",
   ],
-  "add unlink change": ["app/**/forward.{ts,js}", "./middleware.hooks.{ts,js}"],
+  "add unlink change": [
+    "app/**/forward.dynamic.{ts,js}",
+    "app/**/forward.static.{ts,js}",
+    "./middleware.hooks.{ts,js}",
+  ],
 };
 
 const dev = async () => {

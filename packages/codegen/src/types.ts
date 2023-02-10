@@ -4,8 +4,13 @@ export type LayoutType<T> = [
   LayoutType<T> | 1 | undefined
 ];
 
+export type Forwards = {
+  dynamic: string[];
+  static: string[];
+};
+
 export type SegmentLayout = {
-  forward: string[];
+  forward: Forwards;
   rewrite: boolean;
   redirect: boolean;
   page: boolean;
@@ -14,6 +19,7 @@ export type SegmentLayout = {
   location: string;
   segment: string;
   group: boolean;
+  staticForward: boolean;
   internalPath: string;
   externalPath: string;
   hash: string;
@@ -25,15 +31,33 @@ export type SegmentLayout = {
 
 export type ExternalLayout = Record<string, SegmentLayout[]>;
 
+export enum RouteTypes {
+  MIDDLEWARE,
+  DYNAMIC_FORWARD,
+  STATIC_FORWARD,
+  NEXT,
+}
+
+export type ForwarderConfig = {
+  type: RouteTypes.DYNAMIC_FORWARD | RouteTypes.STATIC_FORWARD;
+  name: string;
+};
+
+export type RouteConfig =
+  | ForwarderConfig
+  | {
+      type: RouteTypes.MIDDLEWARE;
+    };
+
 export type MergedRoute = [
   current: SegmentLayout,
   next?: MergedRoute | SegmentLayout,
-  forward?: MergedRoute
+  forward?: readonly [ForwarderConfig, MergedRoute]
 ];
 
 export type FlattenedRoute = [
   currentSegment: SegmentLayout,
-  type: 0 | string,
+  type: RouteConfig,
   next?: FlattenedRoute | SegmentLayout,
   forward?: FlattenedRoute | SegmentLayout
 ];

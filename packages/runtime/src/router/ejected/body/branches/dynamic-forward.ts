@@ -1,17 +1,17 @@
 import renderBranch from ".";
-import { BranchTypes, EjectedForward } from "../../types";
+import { EjectedDynamicForward } from "../../types";
 import { renderHandler, renderSwitchStatement } from "./util";
 
-const renderForward = ({
+const renderDynamicForward = ({
   then,
   forward,
   name,
   location,
   internalPath,
-}: EjectedForward) =>
+}: EjectedDynamicForward) =>
   `
-const forward_response = await ${renderHandler(
-    "forward",
+const forward_response: string | void = await ${renderHandler(
+    "forward_dynamic",
     location,
     internalPath,
     name
@@ -45,4 +45,4 @@ ${renderSwitchStatement({
 })}
 `.trim();
 
-export default renderForward;
+export default renderDynamicForward;

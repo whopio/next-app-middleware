@@ -3,7 +3,8 @@ import getSegmentHash from "../util/get-hash";
 
 const importTypes: (keyof Imports)[] = [
   "middleware",
-  "forward",
+  "forward.dynamic",
+  "forward.static",
   "rewrite",
   "redirect",
 ];
@@ -16,7 +17,9 @@ ${(Object.keys(imports) as (keyof Imports)[])
     Array.from(imports[type])
       .map((location) =>
         `
-    const ${type}_${getSegmentHash(location)} = import("./${location}/${type}");
+    const ${type.replace(".", "_")}_${getSegmentHash(
+          location
+        )} = import("./${location}/${type}");
   `.trim()
       )
       .join("\n")
