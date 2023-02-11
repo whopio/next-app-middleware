@@ -2,17 +2,19 @@
   "name": "@next-app-middleware/runtime",
   "version": "0.0.0",
   "description": "",
+  "private": false,
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "bundle": "tsup ./src/index.ts ./src/router/ejected/index.ts --format cjs --dts",
     "build": "pnpm run bundle --minify",
-    "dev": "pnpm run bundle --watch"
+    "dev": "pnpm run bundle --watch",
+    "release": "turbo-module publish"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@whop-sdk/turbo-module": "^0.0.3",
     "next": "13.1.6",
     "tsconfig": "workspace:^0.0.0",
     "tsup": "^6.5.0"

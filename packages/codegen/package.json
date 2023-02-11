@@ -2,12 +2,13 @@
   "name": "@next-app-middleware/codegen",
   "version": "0.0.0",
   "description": "",
+  "private": false,
   "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "bundle": "tsup ./src/index.ts --format cjs --dts",
     "build": "pnpm run bundle --minify",
-    "dev": "pnpm run bundle --watch"
+    "dev": "pnpm run bundle --watch",
+    "release": "turbo-module publish"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +24,7 @@
     "@types/fs-extra": "^9.0.13",
     "@types/glob": "^8.0.0",
     "@types/prettier": "^2.7.1",
+    "@whop-sdk/turbo-module": "^0.0.3",
     "prettier": "^2.8.0",
     "tsconfig": "workspace:^0.0.0",
     "tsup": "^6.5.0",

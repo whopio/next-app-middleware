@@ -1,4 +1,11 @@
 .eslintrc.js
+
 dist
 out
-/examples/basic-js
+
+examples/basic-js
+
+packages/next-app-middleware/*.d.ts
+packages/next-app-middleware/*.d.ts.map
+packages/next-app-middleware/*.js
+packages/next-app-middleware/*.js.map
