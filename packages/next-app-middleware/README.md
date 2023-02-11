@@ -9,26 +9,27 @@ This next.js extension allows for middleware to live in the app directory. The e
 pnpm
 
 ```
-pnpm install next-app-middleware
+pnpm install next-app-middleware --save-dev
 ```
 
 yarn
 
 ```
-yarn add next-app-middleware
+yarn add next-app-middleware --dev
 ```
 
 npm
 
 ```
-npm install next-app-middleware
+npm install next-app-middleware --save-dev
 ```
 
 ### clean up current middleware and git working tree
 
 - delete your current middleware (or change the name if you want to keep it)
 - commit your repository
-- add `/middleware.ts` to your .gitignore (include the `/` to not exclude any `middleware.ts` files in your `app` directory)
+- add `/middleware.ts` to your .gitignore
+  - NOTE: include the `/` to not exclude any `middleware.ts` files in your `app` directory
 
 ### next.config.js
 
@@ -69,7 +70,7 @@ export default middleware;
 
 (Can not exist in route group segment)
 
-Define internal path forwards in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar [dyanmic] segments.
+Define internal path forwards in this file. Export named functions that indicate what parameter will be rewritten. Used to forward [dyanmic] segments.
 
 ```
 /app/
@@ -91,7 +92,7 @@ In this example the forward.dynamic.ts file declares a locale rewrite. This setu
 
 (Can not exist in route group segment)
 
-Define internal path forwards in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar static segments.
+Define internal path forwards in this file. Export named functions that indicate what parameter will be rewritten. Used to forward static segments.
 
 ```
 /app/
