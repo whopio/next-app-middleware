@@ -3,6 +3,9 @@
 dist
 out
 
+examples/basic/public
+examples/basic/next.config.js
+
 examples/basic-js
 
 packages/next-app-middleware/*.d.ts
