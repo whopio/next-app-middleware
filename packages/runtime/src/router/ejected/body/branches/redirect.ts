@@ -1,5 +1,5 @@
 import renderBranch from ".";
-import { BranchTypes, EjectedRedirect } from "../../types";
+import { EjectedRedirect } from "../../types";
 import { renderHandler, renderSwitchStatement } from "./util";
 
 const renderRedirect = ({

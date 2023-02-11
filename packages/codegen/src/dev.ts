@@ -13,7 +13,7 @@ const buildWithCatch = async (token?: CancelToken) => {
           Date.now() - start
         }ms. watching for changes...`
       );
-    return rewrites!;
+    return rewrites || [];
   } catch (e) {
     logger.error("error while generating middleware:", e);
     return [];
@@ -38,6 +38,7 @@ const watchConfig = {
 const dev = async () => {
   let cancelToken: CancelToken = new CancelToken();
   let buildPromise = buildWithCatch(cancelToken);
+  const rewrites = await buildPromise;
   const runBuild = async (type: string, file: string) => {
     logger.info(`${type} ${file}, rebuilding...`);
     cancelToken.cancel();
@@ -51,7 +52,7 @@ const dev = async () => {
       "detected change in external config... restart may be required to apply changes"
     );
   });
-  return await buildPromise;
+  return rewrites;
 };
 
 export default dev;

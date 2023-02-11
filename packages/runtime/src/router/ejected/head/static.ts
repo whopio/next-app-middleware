@@ -1,4 +1,5 @@
-const staticImports = `import type {
+const staticImports = `/* eslint-disable */
+import type {
   MiddleWareHandlerResult,
   NextMiddlewareInternals,
   NextMiddlewareRequest,

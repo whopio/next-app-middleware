@@ -2,7 +2,7 @@ import { watch } from "chokidar";
 
 const watchAll = (
   config: Record<string, string[]>,
-  onTrigger: (event: string, file: string) => any
+  onTrigger: (event: string, file: string) => unknown
 ) => {
   Object.entries(config).forEach(([events, files]) => {
     const watcher = watch(files, { ignoreInitial: true });

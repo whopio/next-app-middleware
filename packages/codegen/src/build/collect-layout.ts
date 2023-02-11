@@ -57,7 +57,9 @@ const collectChildren = async (
           const match = catchAllSegmentRegex.exec(fileOrFolder);
           children[fileOrFolder] = await collectLayout(
             join(dir, fileOrFolder),
-            join(externalPath, `*${match![1]}`),
+            // this can be safely casted as `isCatchAllSegment` runs the same regex
+            // and will only return true if it matches
+            join(externalPath, `*${(match as RegExpExecArray)[1]}`),
             forward,
             getParent
           );
@@ -103,7 +105,7 @@ const collectChildren = async (
 };
 
 const collectLayout = async (
-  dir: string = "app",
+  dir = "app",
   externalPath = "/",
   parentForward: Forwards = { dynamic: [], static: [] },
   getParent?: () => SegmentLayout

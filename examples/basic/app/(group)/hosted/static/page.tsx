@@ -1,3 +1,5 @@
-export default () => {
+const Page = () => {
   return <>test</>;
 };
+
+export default Page;

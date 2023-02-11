@@ -7,9 +7,9 @@ import { transform } from "@swc/core";
 const { readFile } = fse;
 
 type WrappedModule<T = unknown> = (
-  exports: any,
+  exports: unknown,
   req: typeof require,
-  module: any,
+  module: unknown,
   __filename: string,
   __dirnaname: string
 ) => T;

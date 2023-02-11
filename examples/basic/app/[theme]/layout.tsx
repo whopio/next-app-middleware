@@ -1,5 +1,4 @@
 import "./globals.css";
-import { useSelectedLayoutSegment } from "next/navigation";
 
 export default function RootLayout({
   children,

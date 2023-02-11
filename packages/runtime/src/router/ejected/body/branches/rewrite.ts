@@ -1,5 +1,5 @@
 import renderBranch from ".";
-import { BranchTypes, EjectedRewrite } from "../../types";
+import { EjectedRewrite } from "../../types";
 import { renderHandler, renderSwitchStatement } from "./util";
 
 const renderRewrite = ({ location, fallback, internalPath }: EjectedRewrite) =>

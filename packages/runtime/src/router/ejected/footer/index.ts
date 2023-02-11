@@ -1,6 +1,6 @@
 const footer = `
 export const config = {
-  matcher: "/((?!_next(?:$|\/)|api(?:$|\/))[^\/]+\/?|$)*"
+  matcher: "/((?!_next(?:$|/)|api(?:$|/))[^/]+\\/?|$)*"
 }
 `.trim();
 

@@ -69,12 +69,12 @@ export const traverseRoute = <T>(
     next instanceof Array
       ? traverseRoute(next, onSegment)
       : next
-      ? [onSegment(next, { type: RouteTypes.NEXT }), , ,]
+      ? [onSegment(next, { type: RouteTypes.NEXT }), undefined, undefined]
       : undefined,
     forward instanceof Array
       ? traverseRoute(forward, onSegment)
       : forward
-      ? [onSegment(forward, { type: RouteTypes.NEXT }), , ,]
+      ? [onSegment(forward, { type: RouteTypes.NEXT }), undefined, undefined]
       : undefined,
   ];
 };

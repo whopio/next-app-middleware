@@ -24,6 +24,7 @@ ${(Object.keys(imports) as (keyof Imports)[])
       )
       .join("\n")
   )
+  .filter(Boolean)
   .join("\n")}
 `.trim();
 

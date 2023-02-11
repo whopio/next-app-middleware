@@ -1,8 +1,7 @@
 import { MiddlewareHandler } from "next-app-middleware/runtime";
 
 const middleware: MiddlewareHandler<{ theme: string; user: string }> = (
-  req,
-  res
+  req
 ) => {
   console.log("middleware", req.params.theme, req.params.user);
 };
