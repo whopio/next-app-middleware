@@ -8,7 +8,8 @@
     "build": "concurrently \"pnpm run build:swc\" \"pnpm run build:tsc\"",
     "build:swc": "swc src -d ./ -s -C module.type=commonjs",
     "build:tsc": "tsc --emitDeclarationOnly",
-    "dev": "concurrently \"pnpm run build:swc --watch\" \"pnpm run build:tsc --watch\""
+    "dev": "concurrently \"pnpm run build:swc --watch\" \"pnpm run build:tsc --watch\"",
+    "release": "turbo-module publish"
   },
   "keywords": [],
   "author": "",
