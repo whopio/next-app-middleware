@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Check package.json for version increase
         id: check
-        uses: whopio/turbo-module@v0.0.3
+        uses: whopio/turbo-module@v0.0.4-canary.1
         with: 
           action: check
           token: ${{ github.token }}
@@ -48,14 +48,14 @@ jobs:
         if: steps.check.outputs.can-publish == 'true'
       - name: Github Release
         id: release
-        uses: whopio/turbo-module@v0.0.3
+        uses: whopio/turbo-module@v0.0.4-canary.1
         with: 
           action: release
           token: ${{ github.token }}
           version: ${{ steps.check.outputs.version }}
         if: steps.check.outputs.can-publish == 'true'
       - name: Sync auto-release PRs
-        uses: whopio/turbo-module@v0.0.3
+        uses: whopio/turbo-module@v0.0.4-canary.1
         with: 
           action: sync
           token: ${{ github.token }}

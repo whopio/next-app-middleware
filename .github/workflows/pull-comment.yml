@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Update package.json version number
-        uses: whopio/turbo-module@v0.0.3
+        uses: whopio/turbo-module@v0.0.4-canary.1
         with: 
           action: update
           token: ${{ github.token }}
