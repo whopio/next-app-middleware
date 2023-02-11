@@ -7,7 +7,7 @@ on:
     excludeBranches:
       - turbo-module/release-*-canary
 
-name: Build, test, release
+name: Sync auto PR version with comment
 
 concurrency:
   group: update-relase-pr-${{ github.event.issue.number }}
