@@ -37,10 +37,10 @@ if (!response) {
         params
           ? `
         const final_params = (await paramsHook(params)) || params;
-        final_pathname = next(final_params);
+        final_pathname = (next as ((params: ParamType) => string))(final_params);
       `
           : `
-        final_pathname = next(params);
+        final_pathname = (next as ((params: ParamType) => string))(params);
       `
       }
     } else if (typeof next === "string") {
