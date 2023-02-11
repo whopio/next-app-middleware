@@ -17,8 +17,12 @@ const getConfigRewrites = async (
           throw new Error("external.ts files can not depend on a forward");
         if (segment.hash.includes("/:/"))
           throw new Error("external.ts path can not have dynamic segment");
+        if (typeof segment.external !== "string")
+          throw new Error(
+            "Expected segment.external to be of type string when getting config rewrites."
+          );
         const { default: origin } = await runScrpt<{ default: string }>(
-          join(process.cwd(), segment.location, segment.external!)
+          join(process.cwd(), segment.location, segment.external)
         );
         const url = new URL(segment.hash.replace("/\\/", ""), origin);
         return [

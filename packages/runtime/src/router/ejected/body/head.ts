@@ -39,7 +39,7 @@ Object.defineProperty(req, "search", {
     )),
 });
 Object.defineProperty(req, "waitUntil", {
-  get: () => (promise: Promise<any>) => ev.waitUntil(promise)
+  get: () => (promise: Promise<unknown>) => ev.waitUntil(promise)
 });
 const res = {} as NextMiddlewareResponse;
 Object.defineProperty(res, "headers", {
@@ -54,8 +54,8 @@ Object.defineProperty(res, "cookies", {
 let middleware_response: MiddleWareHandlerResult | undefined = undefined;
 let response: NextResponse | undefined = undefined;
 let next: RuntimeNext = undefined;
-let notFound: boolean = false;
-let external: boolean = false;
+let notFound = false;
+let external = false;
 `.trim();
 
 export default bodyHead;

@@ -33,7 +33,7 @@ export type NextMiddlewareRequest<Param extends DefaultParam = DefaultParam> = {
   readonly params: Param;
   readonly search: URLSearchParams;
   readonly cookies: RequestCookies;
-  readonly waitUntil: (promise: Promise<any>) => void;
+  readonly waitUntil: (promise: Promise<unknown>) => void;
 };
 
 export type NextMiddlewareResponse = {
@@ -50,7 +50,7 @@ export type NextMiddlewareInternals = {
 
 type OptionalPromise<T> = Promise<T> | T;
 
-export type GenericHook<ExtraArgs extends any[] = []> = (
+export type GenericHook<ExtraArgs extends unknown[] = []> = (
   req: NextMiddlewareRequest,
   res: NextMiddlewareResponse,
   ...extra: ExtraArgs

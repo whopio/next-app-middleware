@@ -1,6 +1,6 @@
 const makeLogger =
-  (logger: (...args: any[]) => void, colorPrefix: string) =>
-  (...args: any[]) => {
+  (logger: (...args: unknown[]) => void, colorPrefix: string) =>
+  (...args: unknown[]) => {
     logger.bind(console)(colorPrefix, "middleware", "-", ...args);
   };
 
