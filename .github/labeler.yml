@@ -1,0 +1,12 @@
+'area: core':
+- packages/next-app-middleware/**/*
+
+'area: codegen':
+- packages/codegen/**/*
+
+'area: runtime':
+- packages/runtime/**/*
+
+'area: infra':
+- ./.github/**/*
+- ./turbo.json

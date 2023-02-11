@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 // @ts-check
-
 const { withMiddleware } = require("next-app-middleware");
 
 /** @type {import('next').NextConfig} */

@@ -1,0 +1,9 @@
+{
+  "entry": ["src/index.ts", "src/router/ejected/index.ts"],
+  "extensions": [".ts", ".js", ".d.ts"],
+  "ignoreUnresolved": [
+    "next/dist/server/web/next-url",
+    "next/dist/server/web/spec-extension/cookies",
+    "next/server"
+  ]
+}

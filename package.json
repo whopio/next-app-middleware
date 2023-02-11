@@ -1,11 +1,7 @@
 {
-  "name": "@baked-dev/next-app-middleware",
-  "version": "0.0.0-canary.0",
+  "name": "@whopio/next-app-middleware",
+  "version": "0.0.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
@@ -13,9 +9,10 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
   "devDependencies": {
-    "eslint-config-ts": "workspace:*",
+    "eslint": "^8.34.0",
+    "eslint-config-ts": "workspace:^0.0.0",
     "prettier": "latest",
-    "turbo": "latest"
+    "turbo": "^1.7.4"
   },
   "engines": {
     "node": ">=14.0.0"
@@ -24,6 +21,5 @@
     "next": "13.1.6",
     "eslint-config-next": "13.1.6"
   },
-  "dependencies": {},
   "packageManager": "pnpm@7.13.6"
 }
