@@ -6,6 +6,24 @@ This next.js extension allows for middleware to live in the app directory. The e
 
 ### install
 
+pnpm
+
+```
+pnpm install next-app-middleware
+```
+
+yarn
+
+```
+yarn add next-app-middleware
+```
+
+npm
+
+```
+npm install next-app-middleware
+```
+
 ### clean up current middleware and git working tree
 
 - delete your current middleware (or change the name if you want to keep it)
@@ -28,11 +46,11 @@ module.exports = withMiddleware(nextConfig);
 
 ## file conventions
 
-unless stated otherwise can be in any segment of the app directory.
+NOTE: unless stated otherwise can be in any segment of the app directory.
 
 ### middleware.{ts,js}
 
-Middlewares will be called first when a request reaches its segment. A `MiddlewareHandlerResult` can be returned to intercept the request and stop the handler chain early. If the middleware returns `void` execution continues normally.
+Middlewares will be called first when a request reaches its segment. A `MiddlewareHandlerResult` can be returned to intercept the request and stop the handler chain early. If the middleware returns `void`, execution continues normally.
 
 ```ts
 const middleware: MiddlewareHandler = (req, res) => {
@@ -49,7 +67,9 @@ export default middleware;
 
 ### forward.dynamic.{ts,js}
 
-Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar [dyanmic] segments.
+(Can not exist in route group segment)
+
+Define internal path forwards in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar [dyanmic] segments.
 
 ```
 /app/
@@ -69,7 +89,9 @@ In this example the forward.dynamic.ts file declares a locale rewrite. This setu
 
 ### forward.static.{ts,js}
 
-Define internal path rewrites in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar static segments.
+(Can not exist in route group segment)
+
+Define internal path forwards in this file. Export named functions that indicate what parameter will be rewritten. Used to forwar static segments.
 
 ```
 /app/
@@ -85,11 +107,11 @@ export const hosted = () => {
 };
 ```
 
-In this example the forward.static.ts file declares a hosted rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/hosted` and will block all direct external requests to `/hosted`
+In this example the forward.static.ts file declares a `hosted` rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/hosted` and will block all direct external requests to `/hosted`
 
 ### external.{ts,js}
 
-An external.ts file allows routing traffic to other applications:
+An `external` file allows routing traffic to other applications:
 
 ```ts
 export const origin = "https://example.com";
@@ -97,13 +119,15 @@ export const origin = "https://example.com";
 export default origin;
 ```
 
+NOTE: Once an `external` file is found route collection is stopped, so any local pages in following segments will never be reached.
+
 ### rewrite.{ts,js}
 
-A rewrite.ts file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but can optionally return the final location the request will be routed to.
+A `rewrite` file indicates to the framework that the directory is an external path. The rewrite handler will receive the same arguments as a middleware handler would but can returns the final rewirite path if the request should be rewritten.
 
 ### redirect.{ts,js}
 
-Similar to rewrite.ts but results in a redirect instead of a rewrite
+Similar to `rewrite` but results in a redirect instead of a rewrite
 
 ```ts
 /**
@@ -136,7 +160,7 @@ export default rewrite;
 
 ### middleware.hooks.{ts,js}
 
-A collection of hooks that can be used to extend the middleware lifecylce. Unlike the others, this file has to be in the root of your project instead of the app directory.
+A collection of hooks that can be used to extend the middleware lifecylce. Unlike others, this file has to be in the root of your project instead of the app directory.
 
 #### notFound
 
