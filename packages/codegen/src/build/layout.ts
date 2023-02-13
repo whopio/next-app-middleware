@@ -106,8 +106,6 @@ export const mergeLayouts = (pages: SegmentLayout[][]): MergedRoute => {
     : nexts.length
     ? mergeLayouts(nexts)
     : undefined;
-  if (staticForwards.length)
-    console.log("static forward", getStaticForwardParam(staticForwards[0]));
   const forward = dynamicForwards.length
     ? ([
         {
