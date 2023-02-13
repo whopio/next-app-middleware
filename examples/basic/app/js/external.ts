@@ -1,3 +1,5 @@
-const origin = "http://localhost:3004";
+const getOrigin = async () => {
+  return "http://localhost:3004";
+};
 
-export default origin;
+export default getOrigin;

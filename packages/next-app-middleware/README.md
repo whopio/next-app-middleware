@@ -112,12 +112,20 @@ In this example the forward.static.ts file declares a `hosted` rewrite. This set
 
 ### external.{ts,js}
 
-An `external` file allows routing traffic to other applications:
+An `external` file allows routing traffic to other applications, default export should be either of type `string` or `() => string | Promise<string>`:
 
 ```ts
-export const origin = "https://example.com";
+const origin = "https://example.com";
 
 export default origin;
+```
+
+```ts
+const getOrigin = async () => {
+  return "http://localhost:3004";
+};
+
+export default getOrigin;
 ```
 
 NOTE: Once an `external` file is found route collection is stopped, so any local pages in following segments will never be reached.
