@@ -21,10 +21,13 @@ const getConfigRewrites = async (
           throw new Error(
             "Expected segment.external to be of type string when getting config rewrites."
           );
-        const { default: origin } = await runScrpt<{ default: string }>(
-          join(process.cwd(), segment.location, segment.external)
+        const { default: origin } = await runScrpt<{
+          default: string | (() => Promise<string>);
+        }>(join(process.cwd(), segment.location, segment.external));
+        const url = new URL(
+          segment.hash.replace("/\\/", ""),
+          typeof origin === "function" ? await origin() : origin
         );
-        const url = new URL(segment.hash.replace("/\\/", ""), origin);
         return [
           {
             source: url.pathname,
