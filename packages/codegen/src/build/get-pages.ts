@@ -1,5 +1,8 @@
 import { SegmentLayout } from "../types";
 
+/**
+ * @returns A list of `SegmentLayout` that are externally accessible endpoints
+ */
 const getPages = (layout: SegmentLayout): SegmentLayout[] => {
   const result: SegmentLayout[] = [];
   // pages, externals, redirects and rewrites are considered endpoints
@@ -13,6 +16,10 @@ const getPages = (layout: SegmentLayout): SegmentLayout[] => {
 
 export default getPages;
 
+/**
+ * @returns A mapping of external routes to all possible `SegmentLayout` that
+ * match that route
+ */
 export const getSimilarPages = (pages: SegmentLayout[]) => {
   const result: Record<string, SegmentLayout[]> = {};
   for (const page of pages) {

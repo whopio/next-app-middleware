@@ -20,6 +20,9 @@ import { flattenMergedRoute, traverseRoute } from "./route";
 
 const { outputFile, stat } = fse;
 
+/**
+ * @returns true if tsconfig.json exists
+ */
 const isTypescript = async () => {
   try {
     const stats = await stat(join(process.cwd(), "tsconfig.json"));
