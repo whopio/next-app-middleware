@@ -4,6 +4,11 @@ import { join } from "path";
 
 const { readFile } = fse;
 
+/**
+ * Collects all the named exports from a file using SWC AST to parse the file
+ * @param path A filepath pointing to a ts or js file
+ * @returns A string array of all the named exports in the file
+ */
 const collectModuleExports = async (path: string) => {
   const code = await readFile(join(process.cwd(), path), { encoding: "utf8" });
   const ast = await parse(code, {

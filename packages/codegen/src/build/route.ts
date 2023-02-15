@@ -18,6 +18,9 @@ export const getRoute = (page: SegmentLayout): SegmentLayout[] => {
   return result.reverse();
 };
 
+/**
+ * TODO, comment this in the future
+ */
 export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
   | FlattenedRoute
   | SegmentLayout
