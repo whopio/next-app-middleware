@@ -88,6 +88,25 @@ export const locale = () => {
 
 In this example the forward.dynamic.ts file declares a locale rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/[locale]` and will block all direct external requests to `/[locale]`
 
+NOTE: If you return void from any of the forward functions, request routing will continue in the current segment.
+
+```
+/app/
+  - [locale]
+    - page.tsx
+  - forward.dynamic.ts
+  - page.tsx
+```
+
+```ts
+// app/forward.dynamic.ts
+export const locale = () => {
+  return;
+};
+```
+
+Here, the request will be routed to /app/page.tsx.
+
 ### forward.static.{ts,js}
 
 (Can not exist in route group segment)
@@ -109,6 +128,8 @@ export const hosted = () => {
 ```
 
 In this example the forward.static.ts file declares a `hosted` rewrite. This setup will result in the final middleware to consider any external request to `/` a request to `/hosted` and will block all direct external requests to `/hosted`
+
+NOTE: If you return false from any of the forward functions, request routing will continue in the current segment. (See above for an example)
 
 ### external.{ts,js}
 

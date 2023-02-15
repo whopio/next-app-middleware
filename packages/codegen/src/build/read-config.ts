@@ -17,6 +17,10 @@ const defaultHooksConfig: RouterHooksConfig = {
   external: false,
 };
 
+/**
+ * @returns `RouterHooksConfig` object with `true` for each hook that is used,
+ * parsed from `middleware.hooks.ts` or `middleware.hooks.js`
+ */
 const readHooksConfig = async () => {
   const matches = await glob("./middleware.hooks.{ts,js}");
   if (matches.length === 0)
