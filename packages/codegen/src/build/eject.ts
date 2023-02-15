@@ -214,7 +214,7 @@ const ejectRoute = (
 
 const specialCases = ["", ":", "*", "\\"];
 
-const getMatcherMapImfo = (map: MatcherMap) => ({
+const getMatcherMapInfo = (map: MatcherMap) => ({
   endpoint: map.get("") as FlattenedRoute | undefined,
   dynamic: map.get(":"),
   catchAll: map.get("*") as FlattenedRoute | undefined,
@@ -231,7 +231,7 @@ export const ejectMatcherMap = (
   depth = 0
 ): Branch => {
   if (mapOrRoute instanceof Map) {
-    const map = getMatcherMapImfo(mapOrRoute);
+    const map = getMatcherMapInfo(mapOrRoute);
     if (map.external) {
       return ejectRoute(map.external);
     }

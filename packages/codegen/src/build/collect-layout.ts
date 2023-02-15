@@ -19,6 +19,14 @@ import {
 
 const { readdir, stat } = fse;
 
+/**
+ *
+ * @param dir Current directory
+ * @param filesAndFolders list of files within the current directory
+ * @returns An object that contains the dynamic and static forwards for the
+ * current segment. Represented a string arrays of all the named exports in
+ * either `forward.dynamic.{ts,js}` of `forward.static.{ts,js}`
+ */
 const collectForwards = async (dir: string, filesAndFolders: string[]) => {
   const dynamicForwardFile = findDynamicForward(filesAndFolders);
   const dynamicForwardsPromise = dynamicForwardFile
@@ -34,6 +42,10 @@ const collectForwards = async (dir: string, filesAndFolders: string[]) => {
   };
 };
 
+/**
+ * @returns A record of all the children as `SegmentLayout` of a given segment.
+ * The string key is the name of the folder.
+ */
 const collectChildren = async (
   dir: string,
   externalPath: string,
@@ -47,6 +59,7 @@ const collectChildren = async (
       const stats = await stat(join(dir, fileOrFolder));
       if (stats.isDirectory()) {
         if (isRouteGroupSegment(fileOrFolder)) {
+          // Do not include the route group segment in the external path
           children[fileOrFolder] = await collectLayout(
             join(dir, fileOrFolder),
             externalPath,
@@ -104,6 +117,15 @@ const collectChildren = async (
   return children;
 };
 
+/**
+ * A recursive function that returns the full `SegmentLayout` of a given route
+ * segment.
+ * @param dir Current directory to collect layout from
+ * @param externalPath How the segment can be reached from the browser
+ * @param parentForward Dynamic and static forwards of the parent segment
+ * @param getParent Backlink to the parent segment.
+ * @returns `SegmentLayout` of the current segment. Includes all children.
+ */
 const collectLayout = async (
   dir = "app",
   externalPath = "/",
