@@ -1,6 +1,90 @@
 # next-app-middleware
 
-This next.js extension allows for middleware to live in the app directory. The extension will bundle all special middleware files in the app directory into a single middleware.ts file in your project root.
+next.js uses your filesystem structure to route requests to pages, why should you have to manually route middleware?
+
+Skip the task of matching request paths to conditionally run code in your middleware - this extension allows you to locate your middleware code directly inside the app directory and only run it when it matters.
+
+### before
+
+```
+/app/
+ - /(authenticated)
+   - /page1/page.js
+   - /page2/page.js
+ - /(unauthenticated)
+   - /login/page.js
+ - /page3/page.js
+ - /page4/page.js
+ - /layout.js
+/middleware.js
+```
+
+```ts
+// middleware.js
+import isAuthenticated from "@/lib/isAuthenticated";
+import { NextResponse } from "next/server";
+
+const middleware = (req) => {
+  // here every page that should be only accessed by authenticated users needs to be listed
+  // and manually kept in sync with the project structure
+  if (req.nextUrl.pathname === "/page1" || req.nextUrl.pathname === "/page2") {
+    if (!(await isAuthenticated(req))) {
+      return NextResponse.redirect("/login");
+    }
+  } else if (req.nextUrl.pathname === "/login") {
+    if (await isAuthenticated(req)) {
+      return NextResponse.redirect("/page1");
+    }
+  }
+  return NextResponse.next();
+};
+
+export default middleare;
+```
+
+### after
+
+```
+/app/
+ - /(authenticated)
+   - /page1/page.js
+   - /page2/page.js
+   - middleware.js
+ - /(unauthenticated)
+   - /login/page.js
+   - middleware.js
+ - /page3/page.js
+ - /page4/page.js
+ - /layout.js
+```
+
+```ts
+// app/(authenticated)/middleware.js
+import isAuthenticated from "@/lib/isAuthenticated";
+
+const middleware = async (req) => {
+  if (!(await isAuthenticated(req)))
+    return {
+      redirect: "/login",
+    };
+};
+
+export default middleware;
+
+// app/(unauthenticated)/middleware.js
+import isAuthenticated from "@/lib/isAuthenticated";
+
+const middleware = async (req) => {
+  if (await isAuthenticated(req))
+    return {
+      redirect: "/page1",
+    };
+};
+
+export default middleware;
+```
+
+In this setup the middleware will only run if the request path is matching a page in the `(authenticated)` group segment.
 
 ## setup
 
