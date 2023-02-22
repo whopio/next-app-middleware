@@ -60,6 +60,7 @@ export default middleare;
 
 ```ts
 // app/(authenticated)/middleware.js
+// this will only run on requests to pages in the (authenticated) segment
 import isAuthenticated from "@/lib/isAuthenticated";
 
 const middleware = async (req) => {
@@ -72,6 +73,7 @@ const middleware = async (req) => {
 export default middleware;
 
 // app/(unauthenticated)/middleware.js
+// this will only run on requests to pages in the (unauthenticated) segment
 import isAuthenticated from "@/lib/isAuthenticated";
 
 const middleware = async (req) => {
@@ -84,7 +86,9 @@ const middleware = async (req) => {
 export default middleware;
 ```
 
-In this setup the middleware will only run if the request path is matching a page in the `(authenticated)` group segment.
+## examples
+
+- [i18n](../../examples/i18n/) - simple example that shows how to add i18n to a next project using this extension
 
 ## setup
 
