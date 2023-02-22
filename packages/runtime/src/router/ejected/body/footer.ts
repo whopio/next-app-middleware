@@ -56,7 +56,7 @@ if (!response) {
         : NextResponse.next();
   } else {
     if (!middleware_response) throw new Error("Expected middleware response");
-    const middleware_result = middleware_response!;
+    const middleware_result = middleware_response as Exclude<MiddleWareHandlerResult, void>;
     if ("redirect" in middleware_result) {
       ${
         redirect
