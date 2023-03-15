@@ -48,6 +48,7 @@ importers:
   examples/basic-js:
     specifiers:
       '@next/font': 13.1.6
+      '@types/node': ^17.0.45
       eslint: 8.30.0
       eslint-config-js: workspace:^0.0.0
       eslint-config-next: 13.2.4
@@ -64,6 +65,7 @@ importers:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
     devDependencies:
+      '@types/node': 17.0.45
       eslint-config-js: link:../../packages/eslint-config-js
       next-app-middleware: link:../../packages/next-app-middleware
       typescript: 4.9.5
