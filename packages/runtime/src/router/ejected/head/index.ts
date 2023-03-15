@@ -10,7 +10,7 @@ ${renderHooksImport(hooks)}
 
 ${renderDynamicImports(imports)}
 
-const publicFiles = new Set<string>([${publicFiles
+const publicFiles = new Set<string>([${Array.from(new Set(publicFiles))
     .map((publicFile) => `"${publicFile}"`)
     .join(", ")}]);
 `.trim();
