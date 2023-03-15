@@ -9,10 +9,14 @@ import notFound from "./not-found";
 import renderPathSwitch from "./path-swtich";
 import renderRedirect from "./redirect";
 import renderRewrite from "./rewrite";
+import skip from "./skip";
 import renderStaticForward from "./static-forward";
 
 const renderBranch = (branch: Branch): string => {
   switch (branch.type) {
+    case BranchTypes.SKIP: {
+      return skip;
+    }
     case BranchTypes.MIDDLEWARE: {
       return renderMiddleware(branch);
     }

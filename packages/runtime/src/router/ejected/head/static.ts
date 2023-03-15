@@ -8,7 +8,7 @@ import type {
   ParamType,
   RuntimeNext
 } from "next-app-middleware/runtime";
-import { ResponseCookies } from "next/dist/server/web/spec-extension/cookies/response-cookies";
+import { ResponseCookies } from "next/dist/server/web/spec-extension/cookies";
 import { NextMiddleware, NextResponse } from "next/server";`;
 
 export default staticImports;

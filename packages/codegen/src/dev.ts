@@ -25,6 +25,7 @@ const watchConfig = {
     "app/**/external.{ts,js}",
     "app/**/middleware.{ts,js}",
     "app/**/page.{tsx,js,jsx}",
+    "app/**/route.{ts,js}",
     "app/**/redirect.{ts,js}",
     "public/**/*",
   ],
