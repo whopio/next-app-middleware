@@ -22,7 +22,7 @@
     "@swc/core": "^1.3.21",
     "@whop-sdk/turbo-module": "0.0.4-canary.1",
     "concurrently": "^7.6.0",
-    "next": "13.2.4",
+    "next": "latest",
     "tsconfig": "workspace:0.0.0",
     "typescript": "^4.9.3"
   },

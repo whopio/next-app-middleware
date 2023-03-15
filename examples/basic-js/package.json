@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "eslint-config-js": "workspace:^0.0.0",
-    "next-app-middleware": "workspace:0.0.0"
+    "next-app-middleware": "workspace:0.0.0",
+    "typescript": "^4.9.5"
   }
 }
