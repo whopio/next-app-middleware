@@ -11,9 +11,9 @@ import CancelToken from "../util/CancelToken";
 import logger from "../util/log";
 import collectLayout from "./collect-layout";
 import collectPublicFiles from "./collect-public";
-import { ejectMatcherMap, toMatcherMap } from "./eject";
+import { addRoutesToMap, ejectMatcherMap, toMatcherMap } from "./eject";
 import getConfigRewrites from "./get-config-rewrites";
-import getPages, { getSimilarPages } from "./get-pages";
+import getPages, { getRoutes, getSimilarPages } from "./get-pages";
 import { mergeLayouts, resolveLayouts, validateLayout } from "./layout";
 import readHooksConfig from "./read-config";
 import { flattenMergedRoute, traverseRoute } from "./route";
@@ -83,7 +83,10 @@ const generate = async (isTypescriptPromise: Promise<boolean>) => {
       }
     });
   });
-  const ejectedBranches = ejectMatcherMap(toMatcherMap(routes));
+  const routeEndpoints = getRoutes(layout);
+  const ejectedBranches = ejectMatcherMap(
+    addRoutesToMap(toMatcherMap(routes), routeEndpoints)
+  );
   const ejectedRouter = renderRouter({
     branches: ejectedBranches,
     publicFiles: await publicPromise,
