@@ -14,6 +14,24 @@ const getPages = (layout: SegmentLayout): SegmentLayout[] => {
   return result;
 };
 
+export const getRoutes = (layout: SegmentLayout) => {
+  const result: string[] = [];
+  // pages, externals, redirects and rewrites are considered endpoints
+  if (layout.route)
+    result.push(
+      layout.internalPath
+        .split("/")
+        .map((part) =>
+          part.startsWith(":") ? ":" : part.startsWith("*") ? "*" : part
+        )
+        .join("/")
+    );
+  for (const child of Object.values(layout.children)) {
+    result.push(...getRoutes(child));
+  }
+  return result;
+};
+
 export default getPages;
 
 /**

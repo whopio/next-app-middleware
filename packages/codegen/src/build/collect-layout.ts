@@ -11,6 +11,7 @@ import {
   findPage,
   findRedirect,
   findRewrite,
+  findRoute,
   findStaticForward,
   isCatchAllSegment,
   isRouteGroupSegment,
@@ -156,6 +157,7 @@ const collectLayout = async (
         (external ? "/\\" : "") +
         "/";
   const layoutPage = findPage(filesAndFolders);
+  const route = findRoute(filesAndFolders);
   if (layoutPage && external)
     throw new Error(
       `Error while collecting routing config for "${dir}": page and external can not exist in the same segment.`
@@ -193,6 +195,7 @@ const collectLayout = async (
     rewrite: !!findRewrite(filesAndFolders),
     redirect: !!findRedirect(filesAndFolders),
     page: !!layoutPage,
+    route: !!route,
     external,
     middleware: !!layoutMiddleware,
     children: !external
