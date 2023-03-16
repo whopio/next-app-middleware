@@ -18,11 +18,11 @@
   "license": "ISC",
   "devDependencies": {
     "@whop-sdk/turbo-module": "0.0.4-canary.1",
-    "next": "13.1.6",
+    "next": "latest",
     "tsconfig": "workspace:^0.0.0",
     "tsup": "^6.5.0"
   },
   "peerDependencies": {
-    "next": "^13.1.6"
+    "next": "^13.2"
   }
 }
