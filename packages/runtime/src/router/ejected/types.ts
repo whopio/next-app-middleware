@@ -10,7 +10,12 @@ export enum BranchTypes {
   REWRITE,
   REDIRECT,
   CATCH_ALL,
+  SKIP,
 }
+
+export type EjectedSkip = {
+  type: BranchTypes.SKIP;
+};
 
 export type EjectedMiddleware = {
   type: BranchTypes.MIDDLEWARE;
@@ -93,6 +98,7 @@ export type CatchAllSegment = {
 };
 
 export type Branch =
+  | EjectedSkip
   | EjectedMiddleware
   | EjectedDynamicForward
   | EjectedStaticForward

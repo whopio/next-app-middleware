@@ -13,23 +13,39 @@ export const isRouteGroupSegment = (segment: string) =>
 export const makeFind = (regex: RegExp) => (filesAndFolders: string[]) =>
   filesAndFolders.find((fileOrfolder) => regex.test(fileOrfolder));
 
-export const middlewareRegex = /^(middleware\.(?:t|j)s)$/;
-export const findMiddleware = makeFind(middlewareRegex);
+const make = (regex: RegExp) => ({
+  regex,
+  find: makeFind(regex),
+});
 
-export const pageRegex = /^(page\.(?:tsx|jsx?))$/;
-export const findPage = makeFind(pageRegex);
+export const { regex: middlewareRegex, find: findMiddleware } = make(
+  /^(middleware\.(?:t|j)s)$/
+);
 
-export const externalRegex = /^(external\.(?:t|j)s)$/;
-export const findExternal = makeFind(externalRegex);
+export const { regex: pageRegex, find: findPage } = make(
+  /^(page\.(?:tsx|jsx?))$/
+);
 
-export const dynamicForwardRegex = /^(forward\.dynamic\.(?:t|j)s)$/;
-export const findDynamicForward = makeFind(dynamicForwardRegex);
+export const { regex: routeRegex, find: findRoute } = make(
+  /^(route\.(?:ts|js?))$/
+);
 
-export const staticForwardRegex = /^(forward\.static\.(?:t|j)s)$/;
-export const findStaticForward = makeFind(staticForwardRegex);
+export const { regex: externalRegex, find: findExternal } = make(
+  /^(external\.(?:t|j)s)$/
+);
 
-export const rewriteRegex = /^(rewrite\.(?:t|j)s)$/;
-export const findRewrite = makeFind(rewriteRegex);
+export const { regex: dynamicForwardRegex, find: findDynamicForward } = make(
+  /^(forward\.dynamic\.(?:t|j)s)$/
+);
 
-export const redirectRegex = /^(redirect\.(?:t|j)s)$/;
-export const findRedirect = makeFind(redirectRegex);
+export const { regex: staticForwardRegex, find: findStaticForward } = make(
+  /^(forward\.static\.(?:t|j)s)$/
+);
+
+export const { regex: rewriteRegex, find: findRewrite } = make(
+  /^(rewrite\.(?:t|j)s)$/
+);
+
+export const { regex: redirectRegex, find: findRedirect } = make(
+  /^(redirect\.(?:t|j)s)$/
+);

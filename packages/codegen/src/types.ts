@@ -14,6 +14,7 @@ export type SegmentLayout = {
   rewrite: boolean;
   redirect: boolean;
   page: boolean;
+  route: boolean;
   external?: string;
   middleware: boolean;
   location: string;

@@ -5,7 +5,7 @@ import {
 } from "@next-app-middleware/runtime/dist/router/ejected";
 import { FlattenedRoute, RouteTypes, SegmentLayout } from "../types";
 
-type MatcherMap = Map<string, FlattenedRoute | MatcherMap>;
+type MatcherMap = Map<string, FlattenedRoute | MatcherMap | true>;
 
 export const toMatcherMap = (
   endpoints: (readonly [string, FlattenedRoute])[]
@@ -24,6 +24,24 @@ export const toMatcherMap = (
       currentMap = currentMap.get(segment) as MatcherMap;
     }
     currentMap.set(isCatchAll ? "*" : "", route);
+  }
+  return map;
+};
+
+export const addRoutesToMap = (map: MatcherMap, routeHashes: string[]) => {
+  for (const routeHash of routeHashes) {
+    const segments = routeHash.slice(1).split("/");
+    let currentMap = map;
+    let isCatchAll = false;
+    for (const segment of segments.slice(0, -1)) {
+      if (segment === "*") {
+        isCatchAll = true;
+        break;
+      }
+      if (!currentMap.has(segment)) currentMap.set(segment, new Map());
+      currentMap = currentMap.get(segment) as MatcherMap;
+    }
+    currentMap.set(isCatchAll ? "*" : "", true);
   }
   return map;
 };
@@ -215,9 +233,9 @@ const ejectRoute = (
 const specialCases = ["", ":", "*", "\\"];
 
 const getMatcherMapInfo = (map: MatcherMap) => ({
-  endpoint: map.get("") as FlattenedRoute | undefined,
+  endpoint: map.get("") as FlattenedRoute | true | undefined,
   dynamic: map.get(":"),
-  catchAll: map.get("*") as FlattenedRoute | undefined,
+  catchAll: map.get("*") as FlattenedRoute | true | undefined,
   external: (map.get("\\") as MatcherMap | undefined)?.get("") as
     | FlattenedRoute
     | undefined,
@@ -227,9 +245,13 @@ const getMatcherMapInfo = (map: MatcherMap) => ({
 });
 
 export const ejectMatcherMap = (
-  mapOrRoute: FlattenedRoute | MatcherMap,
+  mapOrRoute: FlattenedRoute | MatcherMap | true,
   depth = 0
 ): Branch => {
+  if (mapOrRoute === true)
+    return {
+      type: BranchTypes.SKIP,
+    };
   if (mapOrRoute instanceof Map) {
     const map = getMatcherMapInfo(mapOrRoute);
     if (map.external) {
@@ -239,7 +261,9 @@ export const ejectMatcherMap = (
       {
         match: "",
         then: map.endpoint
-          ? ejectRoute(map.endpoint)
+          ? map.endpoint === true
+            ? { type: BranchTypes.SKIP }
+            : ejectRoute(map.endpoint)
           : {
               type: BranchTypes.NOT_FOUND,
             },
@@ -258,7 +282,10 @@ export const ejectMatcherMap = (
           index: depth,
           cases,
           defaultCase: ejectMatcherMap(map.dynamic, depth + 1),
-          catchAll: ejectRoute(map.catchAll),
+          catchAll:
+            map.catchAll === true
+              ? { type: BranchTypes.SKIP }
+              : ejectRoute(map.catchAll),
         };
       else
         return {
@@ -272,7 +299,10 @@ export const ejectMatcherMap = (
         type: BranchTypes.SWITCH,
         index: depth,
         cases,
-        defaultCase: ejectRoute(map.catchAll),
+        defaultCase:
+          map.catchAll === true
+            ? { type: BranchTypes.SKIP }
+            : ejectRoute(map.catchAll),
       };
     else
       return {
