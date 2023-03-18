@@ -60,12 +60,14 @@ export const flattenMergedRoute = ([current, next, forward]: MergedRoute):
   }
 };
 
+export type OnSegment<T = never> = (
+  segment: SegmentLayout,
+  type: RouteConfig
+) => T;
+
 export const traverseRoute = <T>(
   [current, type, next, forward]: FlattenedRoute,
-  onSegment: (
-    segment: SegmentLayout,
-    type: RouteConfig | { type: RouteTypes.NEXT }
-  ) => T
+  onSegment: OnSegment<T>
 ): LayoutType<T> => {
   return [
     onSegment(current, type),

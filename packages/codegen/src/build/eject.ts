@@ -8,7 +8,7 @@ import { FlattenedRoute, RouteTypes, SegmentLayout } from "../types";
 type MatcherMap = Map<string, FlattenedRoute | MatcherMap | true>;
 
 export const toMatcherMap = (
-  endpoints: (readonly [string, FlattenedRoute])[]
+  endpoints: (readonly [string, FlattenedRoute | SegmentLayout])[]
 ) => {
   const map: MatcherMap = new Map();
   for (const [pathHash, route] of endpoints) {
@@ -23,7 +23,10 @@ export const toMatcherMap = (
       if (!currentMap.has(segment)) currentMap.set(segment, new Map());
       currentMap = currentMap.get(segment) as MatcherMap;
     }
-    currentMap.set(isCatchAll ? "*" : "", route);
+    currentMap.set(
+      isCatchAll ? "*" : "",
+      route instanceof Array ? route : [route, { type: RouteTypes.NEXT }]
+    );
   }
   return map;
 };
@@ -222,6 +225,9 @@ const ejectRoute = (
                 type: BranchTypes.NOT_FOUND,
               },
       };
+    }
+    case RouteTypes.NEXT: {
+      return ejectPage(currentSegment, appliedParams, catchAllApplied);
     }
     default: {
       const exhaustive: never = config;
