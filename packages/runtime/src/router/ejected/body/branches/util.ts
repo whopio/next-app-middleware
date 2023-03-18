@@ -10,7 +10,9 @@ export const renderHandler = (
 ${type}_${getSegmentHash(location)}.then(({
   ${imports}: ${type}
 }) => ${type}(
-  req as NextMiddlewareRequest<Params<"${internalPath}">>,
+  req as NextMiddlewareRequest<Params<"${
+    internalPath === "//" ? "/" : internalPath
+  }">>,
   res
 ))
 `.trim();
