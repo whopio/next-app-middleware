@@ -16,7 +16,7 @@ import getConfigRewrites from "./get-config-rewrites";
 import getPages, { getRoutes, getSimilarPages } from "./get-pages";
 import { mergeLayouts, resolveLayouts, validateLayout } from "./layout";
 import readHooksConfig from "./read-config";
-import { flattenMergedRoute, traverseRoute } from "./route";
+import { flattenMergedRoute, OnSegment, traverseRoute } from "./route";
 
 const { outputFile, stat } = fse;
 
@@ -42,7 +42,10 @@ const generate = async (isTypescriptPromise: Promise<boolean>) => {
   const routes = Object.entries(externalLayout).map(([key, layouts]) => {
     const resolvedLayouts = resolveLayouts(layouts);
     const mergedRoutes = mergeLayouts(resolvedLayouts);
-    return [key, flattenMergedRoute(mergedRoutes) as FlattenedRoute] as const;
+    return [
+      key,
+      flattenMergedRoute(mergedRoutes) as FlattenedRoute | SegmentLayout,
+    ] as const;
   });
   const imports: Imports = {
     "forward.dynamic": new Set(),
@@ -52,36 +55,38 @@ const generate = async (isTypescriptPromise: Promise<boolean>) => {
     rewrite: new Set(),
   };
   const externals: SegmentLayout[] = [];
-  routes.forEach(([, route]) => {
-    traverseRoute(route, (segment, { type }) => {
-      switch (type) {
-        case RouteTypes.MIDDLEWARE: {
-          imports.middleware.add(segment.location);
-          break;
-        }
-        case RouteTypes.DYNAMIC_FORWARD: {
-          imports["forward.dynamic"].add(segment.location);
-          break;
-        }
-        case RouteTypes.STATIC_FORWARD: {
-          imports["forward.static"].add(segment.location);
-          break;
-        }
-        case RouteTypes.NEXT: {
-          if (segment.external) {
-            externals.push(segment);
-          } else {
-            if (segment.redirect) imports.redirect.add(segment.location);
-            if (segment.rewrite) imports.rewrite.add(segment.location);
-          }
-          break;
-        }
-        default: {
-          const _exhaustive: never = type;
-          return _exhaustive;
-        }
+  const onSegment: OnSegment<undefined> = (segment, { type }) => {
+    switch (type) {
+      case RouteTypes.MIDDLEWARE: {
+        imports.middleware.add(segment.location);
+        break;
       }
-    });
+      case RouteTypes.DYNAMIC_FORWARD: {
+        imports["forward.dynamic"].add(segment.location);
+        break;
+      }
+      case RouteTypes.STATIC_FORWARD: {
+        imports["forward.static"].add(segment.location);
+        break;
+      }
+      case RouteTypes.NEXT: {
+        if (segment.external) {
+          externals.push(segment);
+        } else {
+          if (segment.redirect) imports.redirect.add(segment.location);
+          if (segment.rewrite) imports.rewrite.add(segment.location);
+        }
+        break;
+      }
+      default: {
+        const _exhaustive: never = type;
+        return _exhaustive;
+      }
+    }
+  };
+  routes.forEach(([, route]) => {
+    if (route instanceof Array) traverseRoute(route, onSegment);
+    else onSegment(route, { type: RouteTypes.NEXT });
   });
   const routeEndpoints = getRoutes(layout);
   const ejectedBranches = ejectMatcherMap(
