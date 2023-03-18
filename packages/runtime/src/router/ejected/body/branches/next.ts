@@ -18,7 +18,7 @@ next = (final_params) =>
       );
     })}\`
 `
-    : internalPath !== externalPath
+    : internalPath !== "//" && internalPath !== externalPath
     ? `
 next = "${internalPath}";
 `
