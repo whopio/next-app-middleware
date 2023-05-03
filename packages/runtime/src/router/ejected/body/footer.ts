@@ -52,7 +52,7 @@ if (!response) {
     final_pathname = \`\${final_pathname}?\${search}\`;
     response =
       final_pathname !== \`\${pathname}?\${nextRequest.nextUrl.searchParams}\`
-        ? NextResponse.rewrite(new URL(final_pathname, nextRequest.nextUrl))
+        ? NextResponse.rewrite(new URL(nextRequest.nextUrl.basePath + final_pathname, nextRequest.nextUrl))
         : NextResponse.next();
   } else {
     if (!middleware_response) throw new Error("Expected middleware response");

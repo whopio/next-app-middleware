@@ -7,7 +7,7 @@ const renderNext = ({ internalPath, externalPath }: EjectedNextResponse) =>
   (isDynamic(internalPath)
     ? `
 next = (final_params) =>
-  \`\${nextRequest.nextUrl.basePath || ""}${internalPath
+  \`${internalPath
     .replace(/\/(:[^/]*)/gm, (match, value) => {
       return match.replace(value, `\${final_params.${value.slice(1)}}`);
     })
@@ -20,7 +20,7 @@ next = (final_params) =>
 `
     : internalPath !== "//" && internalPath !== externalPath
     ? `
-next = \`\${nextRequest.nextUrl.basePath || ""}${internalPath}\`;
+next = "${internalPath}";
 `
     : `
 next = true;
