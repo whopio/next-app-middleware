@@ -23,6 +23,6 @@
     "tsup": "^6.5.0"
   },
   "peerDependencies": {
-    "next": "^13.2"
+    "next": "^13.2 || ^14"
   }
 }
